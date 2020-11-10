@@ -20,7 +20,7 @@ def main_train(device, model_name, mask_name, mask_perc):
     isExists = os.path.exists(log_dir)
     if not isExists:
         os.makedirs(log_dir)
-    log_all, log_eval, log_all_filename, log_eval_filename, = logging_setup(log_dir)
+    log_all, log_eval, _, log_all_filename, log_eval_filename, _ = logging_setup(log_dir)
 
     # setup checkpoint
     checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
@@ -83,6 +83,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                 'population_matrix']
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
+    mask = torch.from_numpy(mask).to(device)
 
     print('[*] Loading Network ... ')
     # data loader
@@ -98,16 +99,20 @@ def main_train(device, model_name, mask_name, mask_perc):
                                    log_all=log_all, log_eval=log_eval)
     # pre-processing for vgg
     vgg_pre = VGG_PRE(image_size)
+
     # load vgg
     vgg16_cnn = VGG_CNN()
+    vgg16_cnn = vgg16_cnn.to(device)
     # load unet
     generator = UNet()
+    generator = generator.to(device)
     # load discriminator
     discriminator = Discriminator()
+    discriminator = discriminator.to(device)
 
     # loss function
-    bce = nn.BCELoss(reduction='mean')
-    mse = nn.MSELoss(reduction='mean')
+    bce = nn.BCELoss(reduction='mean').to(device)
+    mse = nn.MSELoss(reduction='mean').to(device)
 
     # real and fake label
     real = 1.
@@ -139,6 +144,7 @@ def main_train(device, model_name, mask_name, mask_perc):
         for step, X_good in enumerate(dataloader):
             # starting time for step
             step_time = time.time()
+            X_good = X_good.to(device)
 
             # (N, H, W, C)-->(N, C, H, W)
             X_good = X_good.permute(0, 3, 1, 2)
@@ -163,20 +169,20 @@ def main_train(device, model_name, mask_name, mask_perc):
             net_vgg_conv4_gen = vgg16_cnn(X_generated_244)
 
             # discriminator loss
-            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real))
-            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake))
+            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
+            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
 
             d_loss = d_loss_real + d_loss_fake
 
             # generator loss (adversarial)
-            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real))
+            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
             # generator loss (perceptual)
             g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
 
             # generator loss (pixel-wise)
             g_nmse_a = mse(X_generated, X_good)
-            g_nmse_b = mse(X_generated, torch.zeros_like(X_generated))
+            g_nmse_b = mse(X_generated, torch.zeros_like(X_generated).to(device))
             g_nmse = torch.div(g_nmse_a, g_nmse_b)
 
             # generator loss (frequency)
@@ -222,9 +228,9 @@ def main_train(device, model_name, mask_name, mask_perc):
             log_all.debug(log)
 
             # eval for training
-            nmsn_res = g_loss.detach().numpy()
-            ssim_res = ssim(X_good, X_bad)
-            psnr_res = psnr(X_good, X_bad)
+            nmsn_res = g_loss.cpu().detach().numpy()
+            ssim_res = ssim(X_good.cpu(), X_bad.cpu())
+            psnr_res = psnr(X_good.cpu(), X_bad.cpu())
 
             total_nmse_training = total_nmse_training + np.sum(nmsn_res)
             total_ssim_training = total_ssim_training + np.sum(ssim_res)
@@ -250,6 +256,8 @@ def main_train(device, model_name, mask_name, mask_perc):
 
         # validation
         for step_val, X_good_val in enumerate(dataloader_val):
+            X_good_val = X_good_val.to(device)
+
             # (N, H, W, C)-->(N, C, H, W)
             X_good_val = X_good_val.permute(0, 3, 1, 2)
             X_bad_val = to_bad_img(X_good_val, mask)
@@ -273,20 +281,20 @@ def main_train(device, model_name, mask_name, mask_perc):
             net_vgg_conv4_gen_val = vgg16_cnn(X_generated_244_val)
 
             # discriminator loss
-            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real))
-            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake))
+            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
+            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
 
             d_loss = d_loss_real + d_loss_fake
 
             # generator loss (adversarial)
-            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real))
+            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
             # generator loss (perceptual)
             g_perceptual = mse(net_vgg_conv4_good_val, net_vgg_conv4_gen_val)
 
             # generator loss (pixel-wise)
             g_nmse_a = mse(X_generated_val, X_good_val)
-            g_nmse_b = mse(X_generated_val, torch.zeros_like(X_generated_val))
+            g_nmse_b = mse(X_generated_val, torch.zeros_like(X_generated_val).to(device))
             g_nmse = torch.div(g_nmse_a, g_nmse_b)
 
             # generator loss (frequency)
@@ -306,9 +314,9 @@ def main_train(device, model_name, mask_name, mask_perc):
             valid_losses['d_loss_fake'].append(d_loss_fake.item())
 
             # eval for validation
-            nmsn_res = g_loss.detach().numpy()
-            ssim_res = ssim(X_good_val, X_bad_val)
-            psnr_res = psnr(X_good_val, X_bad_val)
+            nmsn_res = g_loss.cpu().detach().numpy()
+            ssim_res = ssim(X_good_val.cpu(), X_bad_val.cpu())
+            psnr_res = psnr(X_good_val.cpu(), X_bad_val.cpu())
 
             total_nmse_val = total_nmse_val + np.sum(nmsn_res)
             total_ssim_val = total_ssim_val + np.sum(ssim_res)
@@ -354,8 +362,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     torch.cuda.is_available()
-
-    # %%
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

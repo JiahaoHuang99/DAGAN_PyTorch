@@ -5,9 +5,9 @@ import os
 config = edict()
 config.TRAIN = edict()
 
-config.TRAIN.batch_size = 2
+config.TRAIN.batch_size = 7
 config.TRAIN.early_stopping_num = 10
-config.TRAIN.save_every_epoch = 4
+config.TRAIN.save_every_epoch = 8
 config.TRAIN.lr = 0.0001
 config.TRAIN.lr_decay = 0.5
 config.TRAIN.decay_every = 5

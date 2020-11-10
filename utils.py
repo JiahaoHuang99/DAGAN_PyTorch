@@ -24,7 +24,7 @@ def to_bad_img(x, mask):
 
     x = torch.div(torch.add(x, torch.ones_like(x)), 2)
     fft_x = torch.fft.fftn(x)
-    fft_x = torch.mul(fft_x, torch.from_numpy(mask))
+    fft_x = torch.mul(fft_x, mask)
     x = torch.fft.ifftn(fft_x)
     x = torch.abs(x)
     x = torch.sub(torch.mul(x, 2), torch.ones_like(x))
@@ -88,6 +88,8 @@ def logging_setup(log_dir):
     log_all_filename = os.path.join(log_dir, 'log_all_{}.log'.format(current_time_str))
     # generate eval log filename
     log_eval_filename = os.path.join(log_dir, 'log_eval_{}.log'.format(current_time_str))
+    # generate test log filename
+    log_test_filename = os.path.join(log_dir, 'log_test_{}.log'.format(current_time_str))
 
     # set train log
     log_all = logging.getLogger('log_all')
@@ -99,8 +101,13 @@ def logging_setup(log_dir):
     log_eval.setLevel(logging.INFO)
     log_eval.addHandler(logging.FileHandler(log_eval_filename))
 
+    # set eval log
+    log_test = logging.getLogger('log_test')
+    log_test.setLevel(logging.INFO)
+    log_test.addHandler(logging.FileHandler(log_test_filename))
+
     # logging.Logger object, str
-    return log_all, log_eval, log_all_filename, log_eval_filename
+    return log_all, log_eval, log_test, log_all_filename, log_eval_filename, log_test_filename
 
 
 if __name__ == "__main__":

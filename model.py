@@ -11,7 +11,6 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-
         self.w_init = None # ??
         self.b_inti = None # ??
         self.gamma_init = None # ??
@@ -98,7 +97,7 @@ class Discriminator(nn.Module):
         net_h7 = self.conv7(net_h6)
         res_h7 = self.res8(net_h7)
         net_h8 = self.LRelu(res_h7 + net_h7)
-        net_ho = net_h8.view(net_h8.size(0), -1)
+        net_ho = net_h8.contiguous().view(net_h8.size(0), -1)
         logits = self.out(net_ho)
 
         return net_ho, logits
