@@ -1,0 +1,4 @@
+
+data/MICCAI13_SegChallenge/testing.pickle
+data/MICCAI13_SegChallenge/training.pickle
+data/MICCAI13_SegChallenge/validation.pickle
