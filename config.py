@@ -5,7 +5,8 @@ import os
 config = edict()
 config.TRAIN = edict()
 
-config.TRAIN.batch_size = 7
+config.TRAIN.image_size = 256
+config.TRAIN.batch_size = 16
 config.TRAIN.early_stopping_num = 10
 config.TRAIN.save_every_epoch = 8
 config.TRAIN.lr = 0.0001
@@ -22,7 +23,6 @@ config.TRAIN.g_adv = 1  # weight for frequency loss
 config.TRAIN.seed = 100
 config.TRAIN.epsilon = 0.000001
 
-
 config.TRAIN.VGG16_path = os.path.join('trained_model', 'VGG16', 'vgg16_weights.npz')
 config.TRAIN.training_data_path = os.path.join('data', 'MICCAI13_SegChallenge', 'training.pickle')
 config.TRAIN.val_data_path = os.path.join('data', 'MICCAI13_SegChallenge', 'validation.pickle')
@@ -30,6 +30,8 @@ config.TRAIN.testing_data_path = os.path.join('data', 'MICCAI13_SegChallenge', '
 config.TRAIN.mask_Gaussian1D_path = os.path.join('mask', 'Gaussian1D')
 config.TRAIN.mask_Gaussian2D_path = os.path.join('mask', 'Gaussian2D')
 config.TRAIN.mask_Poisson2D_path = os.path.join('mask', 'Poisson2D')
+
+config.TRAIN.weight_unet = "best_checkpoint_generator_unet_refine_gaussian2d_30_epoch_1_nmse_0.14051798398897147.pt"
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:

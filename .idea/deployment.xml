@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData">
+  <component name="PublishConfigData" serverName="mist@quinv.mistgpu.xyz:11001 password">
     <serverData>
-      <paths name="MIST 002">
+      <paths name="Mist_004">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/data/MICCAI13_SegChallenge" />
+          </excludedPaths>
         </serverdata>
       </paths>
-      <paths name="MIST 019">
+      <paths name="mist@quinv.mistgpu.xyz:11001 password">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/mist" local="$PROJECT_DIR$" />
           </mappings>
-        </serverdata>
-      </paths>
-      <paths name="mist@quinv.mistgpu.xyz:12000 password">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/data/MICCAI13_SegChallenge" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

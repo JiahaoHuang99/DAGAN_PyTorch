@@ -7,14 +7,13 @@ import torch
 from torch.utils import data
 import torch.optim as optim
 from pytorchtools import EarlyStopping
-import time
+from tensorboardX import SummaryWriter
+from time import localtime, strftime, time
 
 
 def main_train(device, model_name, mask_name, mask_perc):
-    # =================================== BASIC CONFIGS =================================== #
 
     print('[*] Run Basic Configs ... ')
-
     # setup log
     log_dir = "log_{}_{}_{}".format(model_name, mask_name, mask_perc)
     isExists = os.path.exists(log_dir)
@@ -22,14 +21,17 @@ def main_train(device, model_name, mask_name, mask_perc):
         os.makedirs(log_dir)
     log_all, log_eval, _, log_all_filename, log_eval_filename, _ = logging_setup(log_dir)
 
+    # tensorbordX logger
+    logger_tensorboard = SummaryWriter('tensorboard/{}/{:3}'.format(log_dir, strftime("%Y_%m_%d_%H_%M_%S", localtime())))
+
     # setup checkpoint
     checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
     isExists = os.path.exists(checkpoint_dir)
     if not isExists:
         os.makedirs(checkpoint_dir)
 
-    # read parameters
-    image_size = 256
+    # configs
+    image_size = config.TRAIN.image_size
     batch_size = config.TRAIN.batch_size
     early_stopping_num = config.TRAIN.early_stopping_num
     save_epoch_every = config.TRAIN.save_every_epoch
@@ -45,12 +47,12 @@ def main_train(device, model_name, mask_name, mask_perc):
     log_config(log_all_filename, config)
     log_config(log_eval_filename, config)
 
-    # data path
     print('[*] Loading Data ... ')
+    # data path
     training_data_path = config.TRAIN.training_data_path
     val_data_path = config.TRAIN.val_data_path
 
-    # data augment
+    # load data (augment)
     data_augment = DataAugment()
     with open(training_data_path, 'rb') as f:
         X_train = torch.from_numpy(load(f))
@@ -61,7 +63,7 @@ def main_train(device, model_name, mask_name, mask_perc):
 
     log = 'X_train shape:{}/ min:{}/ max:{}\n'.format(X_train.shape, X_train.min(), X_train.max()) \
           + 'X_val shape:{}/ min:{}/ max:{}'.format(X_val.shape, X_val.min(), X_val.max())
-    print(log)
+    # print(log)
     log_all.debug(log)
     log_eval.info(log)
 
@@ -94,7 +96,6 @@ def main_train(device, model_name, mask_name, mask_perc):
     # early stopping
     early_stopping = EarlyStopping(early_stopping_num,
                                    model_name=model_name, mask_name=mask_name, mask_perc=mask_perc,
-
                                    verbose=True, checkpoint_path=checkpoint_dir, log_path=log_dir,
                                    log_all=log_all, log_eval=log_eval)
     # pre-processing for vgg
@@ -133,6 +134,10 @@ def main_train(device, model_name, mask_name, mask_perc):
                     'd_loss': [], 'd_loss_real': [], 'd_loss_fake': []}
 
     print('[*] Training  ... ')
+    # initialize global step
+    global GLOBAL_STEP
+    GLOBAL_STEP = 0
+
     for epoch in range(0, n_epoch):
         # initialize training
         total_nmse_training = 0
@@ -142,8 +147,9 @@ def main_train(device, model_name, mask_name, mask_perc):
 
         # training
         for step, X_good in enumerate(dataloader):
+
             # starting time for step
-            step_time = time.time()
+            step_time = time()
             X_good = X_good.to(device)
 
             # (N, H, W, C)-->(N, C, H, W)
@@ -206,14 +212,31 @@ def main_train(device, model_name, mask_name, mask_perc):
             g_optim.step()
 
             # record train loss
-            train_losses['g_loss'].append(g_loss.item())
-            train_losses['g_adversarial'].append(g_adversarial.item())
-            train_losses['g_perceptual'].append(g_perceptual.item())
-            train_losses['g_nmse'].append(g_nmse.item())
-            train_losses['g_fft'].append(g_fft.item())
-            train_losses['d_loss'].append(d_loss.item())
-            train_losses['d_loss_real'].append(d_loss_real.item())
-            train_losses['d_loss_fake'].append(d_loss_fake.item())
+            # train_losses['g_loss'].append(g_loss.item())
+            # train_losses['g_adversarial'].append(g_adversarial.item())
+            # train_losses['g_perceptual'].append(g_perceptual.item())
+            # train_losses['g_nmse'].append(g_nmse.item())
+            # train_losses['g_fft'].append(g_fft.item())
+            # train_losses['d_loss'].append(d_loss.item())
+            # train_losses['d_loss_real'].append(d_loss_real.item())
+            # train_losses['d_loss_fake'].append(d_loss_fake.item())
+
+            logger_tensorboard.add_scalar('TRAIN Generator LOSS/G_LOSS', g_loss.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_adversarial', g_adversarial.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_perceptual', g_perceptual.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_nmse', g_nmse.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_fft', g_fft.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/D_LOSS', d_loss.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_real', d_loss_real.item(),
+                                          global_step=GLOBAL_STEP)
+            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
+                                          global_step=GLOBAL_STEP)
 
             log = "Epoch[{:3}/{:3}] step={:3} d_loss={:5} g_loss={:5} g_adversarial={:5} g_perceptual_loss={:5} g_mse={:5} g_freq={:5} took {:3}s".format(
                 epoch + 1, n_epoch, step,
@@ -223,12 +246,12 @@ def main_train(device, model_name, mask_name, mask_perc):
                 round(float(g_perceptual), 3),
                 round(float(g_nmse), 3),
                 round(float(g_fft), 3),
-                round(time.time() - step_time, 2))
-            print(log)
+                round(time() - step_time, 2))
+            # print(log)
             log_all.debug(log)
 
             # eval for training
-            nmsn_res = g_loss.cpu().detach().numpy()
+            nmsn_res = g_nmse.cpu().detach().numpy()
             ssim_res = ssim(X_good.cpu(), X_bad.cpu())
             psnr_res = psnr(X_good.cpu(), X_bad.cpu())
 
@@ -237,117 +260,148 @@ def main_train(device, model_name, mask_name, mask_perc):
             total_psnr_training = total_psnr_training + np.sum(psnr_res)
 
             num_training_temp = num_training_temp + batch_size
+            GLOBAL_STEP = GLOBAL_STEP + 1
 
         total_nmse_training = total_nmse_training / num_training_temp
         total_ssim_training = total_ssim_training / num_training_temp
         total_psnr_training = total_psnr_training / num_training_temp
 
+        # record training eval
+        logger_tensorboard.add_scalar('Training/NMSE', total_nmse_training, global_step=epoch)
+        logger_tensorboard.add_scalar('Training/SSIM', total_nmse_training, global_step=epoch)
+        logger_tensorboard.add_scalar('Training/PSNR', total_nmse_training, global_step=epoch)
+
         log = "Epoch: {}  NMSE training: {:8}, SSIM training: {:8}, PSNR training: {:8}".format(
             epoch + 1, total_nmse_training, total_ssim_training, total_psnr_training)
-        print(log)
+        # print(log)
         log_all.debug(log)
         log_eval.info(log)
 
-        # initialize training
+        # initialize validation
         total_nmse_val = 0
         total_ssim_val = 0
         total_psnr_val = 0
         num_val_temp = 0
 
-        # validation
-        for step_val, X_good_val in enumerate(dataloader_val):
-            X_good_val = X_good_val.to(device)
+        with torch.no_grad():
+            # validation
+            for step_val, X_good in enumerate(dataloader_val):
+                X_good = X_good.to(device)
 
-            # (N, H, W, C)-->(N, C, H, W)
-            X_good_val = X_good_val.permute(0, 3, 1, 2)
-            X_bad_val = to_bad_img(X_good_val, mask)
+                # (N, H, W, C)-->(N, C, H, W)
+                X_good = X_good.permute(0, 3, 1, 2)
+                X_bad = to_bad_img(X_good, mask)
 
-            # generator
-            if model_name == 'unet':
-                X_generated_val = generator(X_bad_val, is_train=False, is_refine=False)
-            elif model_name == 'unet_refine':
-                X_generated_val = generator(X_bad_val, is_train=False, is_refine=True)
-            else:
-                raise Exception("unknown model")
+                # generator
+                if model_name == 'unet':
+                    X_generated = generator(X_bad, is_train=False, is_refine=False)
+                elif model_name == 'unet_refine':
+                    X_generated = generator(X_bad, is_train=False, is_refine=True)
+                else:
+                    raise Exception("unknown model")
 
-            # discriminator
-            _, logits_fake = discriminator(X_generated_val, is_train=False)
-            _, logits_real = discriminator(X_good_val, is_train=False)
+                # discriminator
+                _, logits_fake = discriminator(X_generated, is_train=False)
+                _, logits_real = discriminator(X_good, is_train=False)
 
-            # vgg
-            X_good_244_val = vgg_pre(X_good_val)
-            net_vgg_conv4_good_val = vgg16_cnn(X_good_244_val)
-            X_generated_244_val = vgg_pre(X_generated_val)
-            net_vgg_conv4_gen_val = vgg16_cnn(X_generated_244_val)
+                # vgg
+                X_good_244 = vgg_pre(X_good)
+                net_vgg_conv4_good = vgg16_cnn(X_good_244)
+                X_generated_244 = vgg_pre(X_generated)
+                net_vgg_conv4_gen = vgg16_cnn(X_generated_244)
 
-            # discriminator loss
-            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
-            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
+                # discriminator loss
+                d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
+                d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
 
-            d_loss = d_loss_real + d_loss_fake
+                d_loss = d_loss_real + d_loss_fake
 
-            # generator loss (adversarial)
-            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
+                # generator loss (adversarial)
+                g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
-            # generator loss (perceptual)
-            g_perceptual = mse(net_vgg_conv4_good_val, net_vgg_conv4_gen_val)
+                # generator loss (perceptual)
+                g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
 
-            # generator loss (pixel-wise)
-            g_nmse_a = mse(X_generated_val, X_good_val)
-            g_nmse_b = mse(X_generated_val, torch.zeros_like(X_generated_val).to(device))
-            g_nmse = torch.div(g_nmse_a, g_nmse_b)
+                # generator loss (pixel-wise)
+                g_nmse_a = mse(X_generated, X_good)
+                g_nmse_b = mse(X_generated, torch.zeros_like(X_generated).to(device))
+                g_nmse = torch.div(g_nmse_a, g_nmse_b)
 
-            # generator loss (frequency)
-            g_fft = mse(fft_abs_for_map_fn(X_generated_val), fft_abs_for_map_fn(X_good_val))
+                # generator loss (frequency)
+                g_fft = mse(fft_abs_for_map_fn(X_generated), fft_abs_for_map_fn(X_good))
 
-            # generator loss (total)
-            g_loss = g_adv * g_adversarial + g_alpha * g_nmse + g_gamma * g_perceptual + g_beta * g_fft
+                # generator loss (total)
+                g_loss = g_adv * g_adversarial + g_alpha * g_nmse + g_gamma * g_perceptual + g_beta * g_fft
 
-            # record validation loss
-            valid_losses['g_loss'].append(g_loss.item())
-            valid_losses['g_adversarial'].append(g_adversarial.item())
-            valid_losses['g_perceptual'].append(g_perceptual.item())
-            valid_losses['g_nmse'].append(g_nmse.item())
-            valid_losses['g_fft'].append(g_fft.item())
-            valid_losses['d_loss'].append(d_loss.item())
-            valid_losses['d_loss_real'].append(d_loss_real.item())
-            valid_losses['d_loss_fake'].append(d_loss_fake.item())
+                # record validation loss
+                # valid_losses['g_loss'].append(g_loss.item())
+                # valid_losses['g_adversarial'].append(g_adversarial.item())
+                # valid_losses['g_perceptual'].append(g_perceptual.item())
+                # valid_losses['g_nmse'].append(g_nmse.item())
+                # valid_losses['g_fft'].append(g_fft.item())
+                # valid_losses['d_loss'].append(d_loss.item())
+                # valid_losses['d_loss_real'].append(d_loss_real.item())
+                # valid_losses['d_loss_fake'].append(d_loss_fake.item())
 
-            # eval for validation
-            nmsn_res = g_loss.cpu().detach().numpy()
-            ssim_res = ssim(X_good_val.cpu(), X_bad_val.cpu())
-            psnr_res = psnr(X_good_val.cpu(), X_bad_val.cpu())
+                logger_tensorboard.add_scalar('VALIDATION Generator LOSS/G_LOSS', g_loss.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Generator LOSS/g_adversarial', g_adversarial.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Generator LOSS/g_perceptual', g_perceptual.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Generator LOSS/g_nmse', g_nmse.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Generator LOSS/g_fft', g_fft.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Discriminator LOSS/D_LOSS', d_loss.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Discriminator LOSS/d_loss_real', d_loss_real.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('VALIDATION Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
+                                              global_step=GLOBAL_STEP)
 
-            total_nmse_val = total_nmse_val + np.sum(nmsn_res)
-            total_ssim_val = total_ssim_val + np.sum(ssim_res)
-            total_psnr_val = total_psnr_val + np.sum(psnr_res)
+                # eval for validation
+                nmsn_res = g_nmse.cpu().detach().numpy()
+                ssim_res = ssim(X_good.cpu(), X_bad.cpu())
+                psnr_res = psnr(X_good.cpu(), X_bad.cpu())
 
-            num_val_temp = num_val_temp + batch_size
+                total_nmse_val = total_nmse_val + np.sum(nmsn_res)
+                total_ssim_val = total_ssim_val + np.sum(ssim_res)
+                total_psnr_val = total_psnr_val + np.sum(psnr_res)
 
-        total_nmse_val = total_nmse_val / num_val_temp
-        total_ssim_val = total_ssim_val / num_val_temp
-        total_psnr_val = total_psnr_val / num_val_temp
+                num_val_temp = num_val_temp + batch_size
 
-        log = "Epoch: {}  NMSE val: {:8}, SSIM val: {:8}, PSNR val: {:8}".format(
-            epoch + 1, total_nmse_val, total_ssim_val, total_psnr_val)
-        print(log)
-        log_all.debug(log)
-        log_eval.info(log)
+            total_nmse_val = total_nmse_val / num_val_temp
+            total_ssim_val = total_ssim_val / num_val_temp
+            total_psnr_val = total_psnr_val / num_val_temp
 
-        # saving checkpoint
-        if (epoch + 1) % save_epoch_every == 0:
-            torch.save(generator.state_dict(),
-                       "./" + checkpoint_dir + "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
-                       .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
-            torch.save(discriminator.state_dict(),
-                       "./" + checkpoint_dir + "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
-                       .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
+            # record validation eval
+            logger_tensorboard.add_scalar('Validation/NMSE', total_nmse_val, global_step=epoch)
+            logger_tensorboard.add_scalar('Validation/SSIM', total_ssim_val, global_step=epoch)
+            logger_tensorboard.add_scalar('Validation/PSNR', total_psnr_val, global_step=epoch)
 
-        # early stopping
-        early_stopping(total_nmse_val, generator, discriminator, epoch)
-        if early_stopping.early_stop:
-            print("Early stopping!")
-            break
+            log = "Epoch: {}  NMSE val: {:8}, SSIM val: {:8}, PSNR val: {:8}".format(
+                epoch + 1, total_nmse_val, total_ssim_val, total_psnr_val)
+            # print(log)
+            log_all.debug(log)
+            log_eval.info(log)
+
+            # saving checkpoint
+            if (epoch + 1) % save_epoch_every == 0:
+                torch.save(generator.state_dict(),
+                           checkpoint_dir + "/checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                           .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
+                torch.save(discriminator.state_dict(),
+                           checkpoint_dir + "/checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                           .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
+
+            # early stopping
+            early_stopping(total_nmse_val, generator, discriminator, epoch)
+            if early_stopping.early_stop:
+                print("Early stopping!")
+                break
+
+
 
 
 if __name__ == "__main__":
@@ -360,8 +414,6 @@ if __name__ == "__main__":
     parser.add_argument('--maskperc', type=int, default='30', help='10,20,30,40,50')
 
     args = parser.parse_args()
-
-    torch.cuda.is_available()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

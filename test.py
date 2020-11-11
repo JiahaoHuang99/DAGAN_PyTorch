@@ -1,10 +1,3 @@
-import pickle
-from model import *
-from utils import *
-from config import config, log_config
-from scipy.io import loadmat, savemat
-
-
 from pickle import load
 from model import *
 from utils import *
@@ -12,23 +5,12 @@ from config import config, log_config
 from scipy.io import loadmat
 import torch
 from torch.utils import data
-import torch.optim as optim
-from pytorchtools import EarlyStopping
-import time
-
 
 
 def main_test(device, model_name, mask_name, mask_perc):
 
 
-    # =================================== BASIC CONFIGS =================================== #
-
-    print('[*] run basic configs ... ')
-
-    # configs
-    sample_size = config.TRAIN.sample_size
-    image_size = 256
-
+    print('[*] Run Basic Configs ... ')
     # setup log
     log_dir = "log_inference_{}_{}_{}".format(model_name, mask_name, mask_perc)
     isExists = os.path.exists(log_dir)
@@ -48,22 +30,25 @@ def main_test(device, model_name, mask_name, mask_perc):
     if not isExists:
         os.makedirs(save_dir)
 
-    # ==================================== PREPARE DATA ==================================== #
+    # configs
+    image_size = config.TRAIN.image_size
+    sample_size = config.TRAIN.sample_size
+    batch_size = config.TRAIN.batch_size
+    weight_unet = config.TRAIN.weight_unet
 
-    print('[*] load data ... ')
+    print('[*] Loading data ... ')
+    # data path
     testing_data_path = config.TRAIN.testing_data_path
 
-    data_augment = DataAugment()
+    # load data (augment)
     with open(testing_data_path, 'rb') as f:
         X_test = torch.from_numpy(load(f))
-        X_test = data_augment(X_test)
 
-    log = 'X_test shape:{}/ min:{}/ max:{}\n'.format(X_test.shape, X_test.min(), X_test.max())
-    print(log)
-    log_.debug(log)
-    log_eval.info(log)
+    log = 'X_test shape:{}/ min:{}/ max:{}'.format(X_test.shape, X_test.min(), X_test.max())
+    # print(log)
+    log_inference.info(log)
 
-    print('[*] loading mask ... ')
+    print('[*] Loading Mask ... ')
     if mask_name == "gaussian2d":
         mask = \
             loadmat(
@@ -83,120 +68,74 @@ def main_test(device, model_name, mask_name, mask_perc):
         raise ValueError("no such mask exists: {}".format(mask_name))
     mask = torch.from_numpy(mask).to(device)
 
-    # ==================================== DEFINE MODEL ==================================== #
-
-    # pre-processing for vgg
-    vgg_pre = VGG_PRE(image_size)
-
-    # load vgg
-    vgg16_cnn = VGG_CNN()
-    vgg16_cnn = vgg16_cnn.to(device)
+    print('[*] Loading Network ... ')
+    # data loader
+    dataloader_test = torch.utils.data.DataLoader(X_test, batch_size=batch_size, pin_memory=True, timeout=0,
+                                             shuffle=True)
     # load unet
     generator = UNet()
     generator = generator.to(device)
+    generator.load_state_dict(torch.load(os.path.join(checkpoint_dir, weight_unet)))
 
     # loss function
-    bce = nn.BCELoss(reduction='mean').to(device)
     mse = nn.MSELoss(reduction='mean').to(device)
 
     # real and fake label
     real = 1.
     fake = 0.
 
-    X_test = X_test.to(device)
+    print('[*] Testing  ... ')
+    # initialize testing
+    total_nmse_test = 0
+    total_ssim_test = 0
+    total_psnr_test = 0
+    num_test_temp = 0
 
-    # (N, H, W, C)-->(N, C, H, W)
-    X_test = X_test.permute(0, 3, 1, 2)
-    X_bad_test = to_bad_img(X_test, mask)
+    with torch.no_grad():
+        # testing
+        for step, X_good_test in enumerate(dataloader_test):
+            X_good_test = X_good_test.to(device)
 
-    # generator
-    if model_name == 'unet':
-        X_generated_test = generator(X_bad_test, is_train=False, is_refine=False)
-    elif model_name == 'unet_refine':
-        X_generated_test = generator(X_bad_test, is_train=False, is_refine=True)
-    else:
-        raise Exception("unknown model")
+            # (N, H, W, C)-->(N, C, H, W)
+            X_good_test = X_good_test.permute(0, 3, 1, 2)
+            X_bad_test = to_bad_img(X_good_test, mask)
 
-    # generator loss (pixel-wise)
-    g_nmse_a = mse(X_generated_test, X_test)
-    g_nmse_b = mse(X_generated_test, torch.zeros_like(X_test).to(device))
-    g_nmse = torch.div(g_nmse_a, g_nmse_b)
+            # generator
+            if model_name == 'unet':
+                X_generated_test = generator(X_bad_test, is_train=False, is_refine=False)
+            elif model_name == 'unet_refine':
+                X_generated_test = generator(X_bad_test, is_train=False, is_refine=True)
+            else:
+                raise Exception("unknown model")
+
+            # generator loss (pixel-wise)
+            g_nmse_a = mse(X_generated_test, X_good_test)
+            g_nmse_b = mse(X_generated_test, torch.zeros_like(X_good_test).to(device))
+            g_nmse = torch.div(g_nmse_a, g_nmse_b)
+
+            # eval for testing
+            nmsn_res = g_nmse.cpu().detach().numpy()
+            ssim_res = ssim(X_good_test.cpu(), X_bad_test.cpu())
+            psnr_res = psnr(X_good_test.cpu(), X_bad_test.cpu())
+
+            total_nmse_test = total_nmse_test + np.sum(nmsn_res)
+            total_ssim_test = total_ssim_test + np.sum(ssim_res)
+            total_psnr_test = total_psnr_test + np.sum(psnr_res)
+
+            num_test_temp = num_test_temp + batch_size
+
+        total_nmse_test = total_nmse_test / num_test_temp
+        total_ssim_test = total_ssim_test / num_test_temp
+        total_psnr_test = total_psnr_test / num_test_temp
+
+        # record testing eval
+        log = "NMSE testing average: {:8}\nSSIM testing average: {:8}\nPSNR testing average: {:8}\n\n".format(
+            total_nmse_test, total_ssim_test, total_psnr_test)
+        print(log)
+        log_inference.debug(log)
 
 
 
-
-    print('[*] start testing ... ')
-
-    x_gen = sess.run(net_test.outputs, {t_image_bad: X_samples_bad})
-    x_gen_0_1 = (x_gen + 1) / 2
-
-    # evaluation for generated data
-
-    nmse_res = sess.run(nmse_0_1, {t_gen: x_gen_0_1, t_image_good: x_good_sample_rescaled})
-    ssim_res = threading_data([_ for _ in zip(x_good_sample_rescaled, x_gen_0_1)], fn=ssim)
-    psnr_res = threading_data([_ for _ in zip(x_good_sample_rescaled, x_gen_0_1)], fn=psnr)
-
-    log = "NMSE testing: {}\nSSIM testing: {}\nPSNR testing: {}\n\n".format(
-        nmse_res,
-        ssim_res,
-        psnr_res)
-
-    log_inference.debug(log)
-
-    log = "NMSE testing average: {}\nSSIM testing average: {}\nPSNR testing average: {}\n\n".format(
-        np.mean(nmse_res),
-        np.mean(ssim_res),
-        np.mean(psnr_res))
-
-    log_inference.debug(log)
-
-    log = "NMSE testing std: {}\nSSIM testing std: {}\nPSNR testing std: {}\n\n".format(np.std(nmse_res),
-                                                                                        np.std(ssim_res),
-                                                                                        np.std(psnr_res))
-
-    log_inference.debug(log)
-
-    # evaluation for zero-filled (ZF) data
-    nmse_res_zf = sess.run(nmse_0_1,
-                           {t_gen: x_bad_sample_rescaled, t_image_good: x_good_sample_rescaled})
-    ssim_res_zf = threading_data([_ for _ in zip(x_good_sample_rescaled, x_bad_sample_rescaled)], fn=ssim)
-    psnr_res_zf = threading_data([_ for _ in zip(x_good_sample_rescaled, x_bad_sample_rescaled)], fn=psnr)
-
-    log = "NMSE ZF testing: {}\nSSIM ZF testing: {}\nPSNR ZF testing: {}\n\n".format(
-        nmse_res_zf,
-        ssim_res_zf,
-        psnr_res_zf)
-
-    log_inference.debug(log)
-
-    log = "NMSE ZF average testing: {}\nSSIM ZF average testing: {}\nPSNR ZF average testing: {}\n\n".format(
-        np.mean(nmse_res_zf),
-        np.mean(ssim_res_zf),
-        np.mean(psnr_res_zf))
-
-    log_inference.debug(log)
-
-    log = "NMSE ZF std testing: {}\nSSIM ZF std testing: {}\nPSNR ZF std testing: {}\n\n".format(
-        np.std(nmse_res_zf),
-        np.std(ssim_res_zf),
-        np.std(psnr_res_zf))
-
-    log_inference.debug(log)
-
-    # sample testing images
-    tl.visualize.save_images(x_gen,
-                             [5, 10],
-                             os.path.join(save_dir, "final_generated_image.png"))
-
-    tl.visualize.save_images(np.clip(10 * np.abs(X_samples_good - x_gen) / 2, 0, 1),
-                             [5, 10],
-                             os.path.join(save_dir, "final_generated_image_diff_abs_10_clip.png"))
-
-    tl.visualize.save_images(np.clip(10 * np.abs(X_samples_good - X_samples_bad) / 2, 0, 1),
-                             [5, 10],
-                             os.path.join(save_dir, "final_bad_image_diff_abs_10_clip.png"))
-
-    print("[*] Job finished!")
 
 if __name__ == "__main__":
     import argparse
@@ -209,8 +148,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    tl.global_flag['model'] = args.model
-    tl.global_flag['mask'] = args.mask
-    tl.global_flag['maskperc'] = args.maskperc
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    main_test()
+    main_test(device, args.model, args.mask, args.maskperc)

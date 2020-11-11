@@ -1,12 +1,11 @@
 import numpy as np
 import torch
 
-
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
 
     def __init__(self, patience=10, model_name='unet', mask_name='gaussian2d', mask_perc=30,
-                 verbose=False, delta=0, checkpoint_path='./checkpoint_dir', log_path='.save_dir',
+                 verbose=False, delta=0, checkpoint_path='./checkpoint_dir', log_path='./log_dir',
                  log_all=False, log_eval=False, trace_func=print):
         """
         Args:
@@ -57,7 +56,7 @@ class EarlyStopping:
             self.counter = 0  # 计数器归零
 
         log = f'EarlyStopping counter of epoch {epoch + 1} : {self.counter} out of {self.patience}'
-        print(log)
+        # print(log)
         self.log_all.debug(log)
 
 
@@ -65,16 +64,16 @@ class EarlyStopping:
         # Saves model when validation loss decrease.
         if self.verbose:
             log = f'Validation loss decreased ({self.val_nmse_min:.6f} --> {val_nmse:.6f}).  Saving model ...'
-            print(log)
+            # print(log)
             self.log_all.debug(log)
             self.log_eval.info(log)
 
         self.val_nmse_min = val_nmse
         torch.save(model_g.state_dict(),
-                   "./" + self.checkpoint_path + "/best_checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+                   self.checkpoint_path + "/best_checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                    .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min),
                    _use_new_zipfile_serialization=False)
         torch.save(model_d.state_dict(),
-                   "./" + self.checkpoint_path + "/best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+                   self.checkpoint_path + "/best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                    .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min),
                    _use_new_zipfile_serialization=False)
