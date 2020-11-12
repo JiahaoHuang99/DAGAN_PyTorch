@@ -31,7 +31,6 @@ def main_train(device, model_name, mask_name, mask_perc):
         os.makedirs(checkpoint_dir)
 
     # configs
-    image_size = config.TRAIN.image_size
     batch_size = config.TRAIN.batch_size
     early_stopping_num = config.TRAIN.early_stopping_num
     save_epoch_every = config.TRAIN.save_every_epoch
@@ -98,6 +97,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                                    model_name=model_name, mask_name=mask_name, mask_perc=mask_perc,
                                    verbose=True, checkpoint_path=checkpoint_dir, log_path=log_dir,
                                    log_all=log_all, log_eval=log_eval)
+
     # pre-processing for vgg
     vgg_pre = VGG_PRE()
 
@@ -125,13 +125,6 @@ def main_train(device, model_name, mask_name, mask_perc):
 
     d_optim = optim.Adam(discriminator.parameters(), lr=lr, betas=(beta1, 0.999))
     optim.lr_scheduler.StepLR(d_optim, lr_decay_every, gamma=lr_decay, last_epoch=-1)
-
-    # loss
-    train_losses = {'g_loss': [], 'g_adversarial': [], 'g_perceptual': [], 'g_nmse': [], 'g_fft': [],
-                    'd_loss': [], 'd_loss_real': [], 'd_loss_fake': []}
-
-    valid_losses = {'g_loss': [], 'g_adversarial': [], 'g_perceptual': [], 'g_nmse': [], 'g_fft': [],
-                    'd_loss': [], 'd_loss_real': [], 'd_loss_fake': []}
 
     print('[*] Training  ... ')
     # initialize global step
@@ -407,8 +400,6 @@ def main_train(device, model_name, mask_name, mask_perc):
             if early_stopping.early_stop:
                 print("Early stopping!")
                 break
-
-
 
 
 if __name__ == "__main__":

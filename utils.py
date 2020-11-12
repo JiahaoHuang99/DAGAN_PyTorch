@@ -23,10 +23,8 @@ class DataAugment:
         return x
 
 
-
-# 滤波
+# Filtering
 def to_bad_img(x, mask):
-
     x = torch.div(torch.add(x, torch.ones_like(x)), 2)
     fft_x = torch.fft.fftn(x)
     fft_x = torch.mul(fft_x, mask)
@@ -37,7 +35,7 @@ def to_bad_img(x, mask):
     return x
 
 
-# 傅里叶变换&绝对值
+# Fourier Transform
 def fft_abs_for_map_fn(x):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     x = torch.div(torch.add(x, torch.ones_like(x)), 2)
@@ -47,9 +45,8 @@ def fft_abs_for_map_fn(x):
     return fft_abs
 
 
-# 结构相似性
+# Structural Similarity
 def ssim(x_good, x_bad):
-
     x_good = np.squeeze(x_good.numpy())
     x_bad = np.squeeze(x_bad.numpy())
     ssim_res = []
@@ -59,26 +56,25 @@ def ssim(x_good, x_bad):
     return ssim_res
 
 
-# 峰值信噪比
+# Peak Signal to Noise Ratio
 def psnr(x_good, x_bad):
-
     x_good = np.squeeze(x_good.numpy())
     x_bad = np.squeeze(x_bad.numpy())
     psnr_res = []
-
     for idx in range(x_good.shape[0]):
         psnr_res = skimage.metrics.peak_signal_noise_ratio(x_good[idx], x_bad[idx])
 
     return psnr_res
 
 
-# vgg 准备
+# Preparation for VGG
 class VGG_PRE:
     def __init__(self):
         self.transform_vgg = transforms.Compose([
             transforms.Resize((244, 244)),
         ])
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     def __call__(self, x):
         x = x.repeat(1, 3, 1, 1)
         x = torch.mul(torch.add(x, torch.ones_like(x)), 127.5)
@@ -86,9 +82,11 @@ class VGG_PRE:
                                 .reshape((1, 3, 1, 1)))
         x = torch.sub(x, mean.to(self.device))
         x = self.transform_vgg(x)
+
         return x
 
-# logger
+
+# Logger Setup
 def logging_setup(log_dir):
     # get current time
     current_time_str = strftime("%Y_%m_%d_%H_%M_%S", localtime())
