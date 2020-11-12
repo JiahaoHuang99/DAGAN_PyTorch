@@ -99,7 +99,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                                    verbose=True, checkpoint_path=checkpoint_dir, log_path=log_dir,
                                    log_all=log_all, log_eval=log_eval)
     # pre-processing for vgg
-    vgg_pre = VGG_PRE(image_size)
+    vgg_pre = VGG_PRE()
 
     # load vgg
     vgg16_cnn = VGG_CNN()
@@ -211,56 +211,60 @@ def main_train(device, model_name, mask_name, mask_perc):
             d_optim.step()
             g_optim.step()
 
-            # record train loss
-            # train_losses['g_loss'].append(g_loss.item())
-            # train_losses['g_adversarial'].append(g_adversarial.item())
-            # train_losses['g_perceptual'].append(g_perceptual.item())
-            # train_losses['g_nmse'].append(g_nmse.item())
-            # train_losses['g_fft'].append(g_fft.item())
-            # train_losses['d_loss'].append(d_loss.item())
-            # train_losses['d_loss_real'].append(d_loss_real.item())
-            # train_losses['d_loss_fake'].append(d_loss_fake.item())
+            with torch.no_grad():
+                # record train loss
+                logger_tensorboard.add_scalar('TRAIN Generator LOSS/G_LOSS', g_loss.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_adversarial', g_adversarial.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_perceptual', g_perceptual.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_nmse', g_nmse.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_fft', g_fft.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/D_LOSS', d_loss.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_real', d_loss_real.item(),
+                                              global_step=GLOBAL_STEP)
+                logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
+                                              global_step=GLOBAL_STEP)
 
-            logger_tensorboard.add_scalar('TRAIN Generator LOSS/G_LOSS', g_loss.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_adversarial', g_adversarial.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_perceptual', g_perceptual.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_nmse', g_nmse.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Generator LOSS/g_fft', g_fft.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/D_LOSS', d_loss.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_real', d_loss_real.item(),
-                                          global_step=GLOBAL_STEP)
-            logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
-                                          global_step=GLOBAL_STEP)
+                log = "Epoch[{:3}/{:3}] step={:3} d_loss={:5} g_loss={:5} g_adversarial={:5} g_perceptual_loss={:5} g_mse={:5} g_freq={:5} took {:3}s".format(
+                    epoch + 1, n_epoch, step,
+                    round(float(d_loss), 3),
+                    round(float(g_loss), 3),
+                    round(float(g_adversarial), 3),
+                    round(float(g_perceptual), 3),
+                    round(float(g_nmse), 3),
+                    round(float(g_fft), 3),
+                    round(time() - step_time, 2))
+                # print(log)
+                log_all.debug(log)
 
-            log = "Epoch[{:3}/{:3}] step={:3} d_loss={:5} g_loss={:5} g_adversarial={:5} g_perceptual_loss={:5} g_mse={:5} g_freq={:5} took {:3}s".format(
-                epoch + 1, n_epoch, step,
-                round(float(d_loss), 3),
-                round(float(g_loss), 3),
-                round(float(g_adversarial), 3),
-                round(float(g_perceptual), 3),
-                round(float(g_nmse), 3),
-                round(float(g_fft), 3),
-                round(time() - step_time, 2))
-            # print(log)
-            log_all.debug(log)
+                # gpu --> cpu
+                X_good = X_good.cpu()
+                X_generated = X_generated.cpu()
+                X_bad = X_bad.cpu()
 
-            # eval for training
-            nmsn_res = g_nmse.cpu().detach().numpy()
-            ssim_res = ssim(X_good.cpu(), X_bad.cpu())
-            psnr_res = psnr(X_good.cpu(), X_bad.cpu())
+                # (-1,1)-->(0,1)
+                X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
+                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
+                X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
 
-            total_nmse_training = total_nmse_training + np.sum(nmsn_res)
-            total_ssim_training = total_ssim_training + np.sum(ssim_res)
-            total_psnr_training = total_psnr_training + np.sum(psnr_res)
+                # eval for training
+                nmse_a = mse(X_generated_0_1, X_good_0_1)
+                nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+                nmsn_res = torch.div(nmse_a, nmse_b).numpy()
+                ssim_res = ssim(X_generated_0_1, X_bad_0_1)
+                psnr_res = psnr(X_generated_0_1, X_bad_0_1)
 
-            num_training_temp = num_training_temp + batch_size
-            GLOBAL_STEP = GLOBAL_STEP + 1
+                total_nmse_training = total_nmse_training + np.sum(nmsn_res)
+                total_ssim_training = total_ssim_training + np.sum(ssim_res)
+                total_psnr_training = total_psnr_training + np.sum(psnr_res)
+
+                num_training_temp = num_training_temp + batch_size
+                GLOBAL_STEP = GLOBAL_STEP + 1
 
         total_nmse_training = total_nmse_training / num_training_temp
         total_ssim_training = total_ssim_training / num_training_temp
@@ -334,15 +338,6 @@ def main_train(device, model_name, mask_name, mask_perc):
                 g_loss = g_adv * g_adversarial + g_alpha * g_nmse + g_gamma * g_perceptual + g_beta * g_fft
 
                 # record validation loss
-                # valid_losses['g_loss'].append(g_loss.item())
-                # valid_losses['g_adversarial'].append(g_adversarial.item())
-                # valid_losses['g_perceptual'].append(g_perceptual.item())
-                # valid_losses['g_nmse'].append(g_nmse.item())
-                # valid_losses['g_fft'].append(g_fft.item())
-                # valid_losses['d_loss'].append(d_loss.item())
-                # valid_losses['d_loss_real'].append(d_loss_real.item())
-                # valid_losses['d_loss_fake'].append(d_loss_fake.item())
-
                 logger_tensorboard.add_scalar('VALIDATION Generator LOSS/G_LOSS', g_loss.item(),
                                               global_step=GLOBAL_STEP)
                 logger_tensorboard.add_scalar('VALIDATION Generator LOSS/g_adversarial', g_adversarial.item(),
@@ -360,10 +355,22 @@ def main_train(device, model_name, mask_name, mask_perc):
                 logger_tensorboard.add_scalar('VALIDATION Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
                                               global_step=GLOBAL_STEP)
 
+                # gpu --> cpu
+                X_good = X_good.cpu()
+                X_generated = X_generated.cpu()
+                X_bad = X_bad.cpu()
+
+                # (-1,1)-->(0,1)
+                X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
+                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
+                X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
+
                 # eval for validation
-                nmsn_res = g_nmse.cpu().detach().numpy()
-                ssim_res = ssim(X_good.cpu(), X_bad.cpu())
-                psnr_res = psnr(X_good.cpu(), X_bad.cpu())
+                nmse_a = mse(X_generated_0_1, X_good_0_1)
+                nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+                nmsn_res = torch.div(nmse_a, nmse_b).cpu().numpy()
+                ssim_res = ssim(X_generated_0_1.cpu(), X_bad_0_1.cpu())
+                psnr_res = psnr(X_generated_0_1.cpu(), X_bad_0_1.cpu())
 
                 total_nmse_val = total_nmse_val + np.sum(nmsn_res)
                 total_ssim_val = total_ssim_val + np.sum(ssim_res)

@@ -16,7 +16,12 @@ class DataAugment:
             transforms.RandomAffine(0)])
 
     def __call__(self, x):
-        return self.transform_train(x)
+        x = torch.div(torch.add(x, torch.ones_like(x)), 2)
+        x = self.transform_train(x)
+        x = torch.sub(torch.mul(x, 2), torch.ones_like(x))
+
+        return x
+
 
 
 # 滤波
@@ -34,7 +39,8 @@ def to_bad_img(x, mask):
 
 # 傅里叶变换&绝对值
 def fft_abs_for_map_fn(x):
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    x = torch.div(torch.add(x, torch.ones_like(x)), 2)
     fft_x = torch.fft.fftn(x)
     fft_abs = torch.abs(fft_x)
 
@@ -68,18 +74,21 @@ def psnr(x_good, x_bad):
 
 # vgg 准备
 class VGG_PRE:
-    def __init__(self,image_size):
+    def __init__(self):
         self.transform_vgg = transforms.Compose([
-            transforms.Resize((image_size,image_size)),
-            transforms.Normalize(127.5, 1)
+            transforms.Resize((244, 244)),
         ])
-
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     def __call__(self, x):
-        x = x.repeat(1,3,1,1)
-        return self.transform_vgg(x)
+        x = x.repeat(1, 3, 1, 1)
+        x = torch.mul(torch.add(x, torch.ones_like(x)), 127.5)
+        mean = torch.from_numpy(np.array([123.68, 116.779, 103.939], dtype=np.float32)
+                                .reshape((1, 3, 1, 1)))
+        x = torch.sub(x, mean.to(self.device))
+        x = self.transform_vgg(x)
+        return x
 
-
-# 日志
+# logger
 def logging_setup(log_dir):
     # get current time
     current_time_str = strftime("%Y_%m_%d_%H_%M_%S", localtime())

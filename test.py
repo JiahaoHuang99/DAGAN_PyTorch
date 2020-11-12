@@ -5,10 +5,13 @@ from config import config, log_config
 from scipy.io import loadmat
 import torch
 from torch.utils import data
+import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
-
+    # configs
+    batch_size = config.TRAIN.batch_size
+    weight_unet = config.TRAIN.weight_unet
 
     print('[*] Run Basic Configs ... ')
     # setup log
@@ -25,16 +28,10 @@ def main_test(device, model_name, mask_name, mask_perc):
         os.makedirs(checkpoint_dir)
 
     # setup save dir
-    save_dir = "sample_{}_{}_{}".format(model_name, mask_name, mask_perc)
+    save_dir = "sample_{}_{}_{}/{}".format(model_name, mask_name, mask_perc, weight_unet)
     isExists = os.path.exists(save_dir)
     if not isExists:
         os.makedirs(save_dir)
-
-    # configs
-    image_size = config.TRAIN.image_size
-    sample_size = config.TRAIN.sample_size
-    batch_size = config.TRAIN.batch_size
-    weight_unet = config.TRAIN.weight_unet
 
     print('[*] Loading data ... ')
     # data path
@@ -70,8 +67,8 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     print('[*] Loading Network ... ')
     # data loader
-    dataloader_test = torch.utils.data.DataLoader(X_test, batch_size=batch_size, pin_memory=True, timeout=0,
-                                             shuffle=True)
+    dataloader_test = torch.utils.data.DataLoader(X_test[0:100], batch_size=batch_size, pin_memory=True, timeout=0,
+                                                  shuffle=True)
     # load unet
     generator = UNet()
     generator = generator.to(device)
@@ -91,38 +88,54 @@ def main_test(device, model_name, mask_name, mask_perc):
     total_psnr_test = 0
     num_test_temp = 0
 
+    X_good_test_sample = []
+    X_bad_test_sample = []
+    X_generated_test_sample = []
+
     with torch.no_grad():
         # testing
-        for step, X_good_test in enumerate(dataloader_test):
-            X_good_test = X_good_test.to(device)
-
+        for step, X_good in enumerate(dataloader_test):
+            X_good = X_good.to(device)
+            print(step)
             # (N, H, W, C)-->(N, C, H, W)
-            X_good_test = X_good_test.permute(0, 3, 1, 2)
-            X_bad_test = to_bad_img(X_good_test, mask)
+            X_good = X_good.permute(0, 3, 1, 2)
+            X_bad = to_bad_img(X_good, mask)
 
             # generator
             if model_name == 'unet':
-                X_generated_test = generator(X_bad_test, is_train=False, is_refine=False)
+                X_generated = generator(X_bad, is_train=False, is_refine=False)
             elif model_name == 'unet_refine':
-                X_generated_test = generator(X_bad_test, is_train=False, is_refine=True)
+                X_generated = generator(X_bad, is_train=False, is_refine=True)
             else:
                 raise Exception("unknown model")
 
-            # generator loss (pixel-wise)
-            g_nmse_a = mse(X_generated_test, X_good_test)
-            g_nmse_b = mse(X_generated_test, torch.zeros_like(X_good_test).to(device))
-            g_nmse = torch.div(g_nmse_a, g_nmse_b)
+            # gpu --> cpu
+            X_good = X_good.cpu()
+            X_generated = X_generated.cpu()
+            X_bad = X_bad.cpu()
 
-            # eval for testing
-            nmsn_res = g_nmse.cpu().detach().numpy()
-            ssim_res = ssim(X_good_test.cpu(), X_bad_test.cpu())
-            psnr_res = psnr(X_good_test.cpu(), X_bad_test.cpu())
+            # (-1,1)-->(0,1)
+            X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
+            X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
+            X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
+
+            # eval for validation
+            nmse_a = mse(X_generated_0_1, X_good_0_1)
+            nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+            nmsn_res = torch.div(nmse_a, nmse_b).cpu().numpy()
+            ssim_res = ssim(X_generated_0_1.cpu(), X_bad_0_1.cpu())
+            psnr_res = psnr(X_generated_0_1.cpu(), X_bad_0_1.cpu())
 
             total_nmse_test = total_nmse_test + np.sum(nmsn_res)
             total_ssim_test = total_ssim_test + np.sum(ssim_res)
             total_psnr_test = total_psnr_test + np.sum(psnr_res)
 
             num_test_temp = num_test_temp + batch_size
+
+            # output the sample
+            X_good_test_sample.append(X_good_0_1[0, :, :, :])
+            X_generated_test_sample.append(X_generated_0_1[0, :, :, :])
+            X_bad_test_sample.append(X_bad_0_1[0, :, :, :])
 
         total_nmse_test = total_nmse_test / num_test_temp
         total_ssim_test = total_ssim_test / num_test_temp
@@ -134,8 +147,15 @@ def main_test(device, model_name, mask_name, mask_perc):
         print(log)
         log_inference.debug(log)
 
+        # save image
 
-
+        for i in range(len(X_good_test_sample)):
+            torchvision.utils.save_image(X_good_test_sample[i],
+                                         os.path.join(save_dir, 'GroundTruth_{}.png'.format(i)))
+            torchvision.utils.save_image(X_generated_test_sample[i],
+                                         os.path.join(save_dir, 'Generated_{}.png'.format(i)))
+            torchvision.utils.save_image(X_bad_test_sample[i],
+                                         os.path.join(save_dir, 'Bad_{}.png'.format(i)))
 
 if __name__ == "__main__":
     import argparse
