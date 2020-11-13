@@ -400,11 +400,11 @@ def main_train(device, model_name, mask_name, mask_perc):
             if (epoch + 1) % save_epoch_every == 0:
                 torch.save(generator.state_dict(),
                            os.path.join(checkpoint_dir, current_time,
-                                        "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                                        "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                                         .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
                 torch.save(discriminator.state_dict(),
                            os.path.join(checkpoint_dir, current_time,
-                                        "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                                        "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                                         .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
 
             # early stopping
