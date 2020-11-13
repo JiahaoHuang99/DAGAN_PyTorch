@@ -9,29 +9,34 @@ import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
+    # current time
+    current_time = strftime("%Y_%m_%d_%H_%M_%S", localtime())
+
     # configs
     batch_size = config.TRAIN.batch_size
     weight_unet = config.TRAIN.weight_unet
+    is_mini_dataset = config.TRAIN.is_mini_dataset
+    size_mini_testset = config.TRAIN.size_mini_testset
 
     print('[*] Run Basic Configs ... ')
     # setup log
     log_dir = "log_inference_{}_{}_{}".format(model_name, mask_name, mask_perc)
     isExists = os.path.exists(log_dir)
     if not isExists:
-        os.makedirs(log_dir)
-    _, _, log_inference, _, _, log_inference_filename = logging_setup(log_dir)
+        os.makedirs(os.path.join(log_dir, current_time))
+    _, _, log_inference, _, _, log_inference_filename = logging_setup(log_dir, current_time)
 
     # setup checkpoint
     checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(checkpoint_dir)
+    isExists = os.path.exists(os.path.join(checkpoint_dir, current_time))
     if not isExists:
-        os.makedirs(checkpoint_dir)
+        os.makedirs(os.path.join(checkpoint_dir, current_time))
 
     # setup save dir
     save_dir = "sample_{}_{}_{}/{}".format(model_name, mask_name, mask_perc, weight_unet)
-    isExists = os.path.exists(save_dir)
+    isExists = os.path.exists(os.path.join(save_dir, current_time))
     if not isExists:
-        os.makedirs(save_dir)
+        os.makedirs(os.path.join(save_dir, current_time))
 
     print('[*] Loading data ... ')
     # data path
@@ -40,6 +45,8 @@ def main_test(device, model_name, mask_name, mask_perc):
     # load data (augment)
     with open(testing_data_path, 'rb') as f:
         X_test = torch.from_numpy(load(f))
+        if is_mini_dataset:
+            X_test = X_test[0:size_mini_testset]
 
     log = 'X_test shape:{}/ min:{}/ max:{}'.format(X_test.shape, X_test.min(), X_test.max())
     # print(log)

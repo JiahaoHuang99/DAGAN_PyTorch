@@ -50,9 +50,9 @@ def ssim(x_good, x_bad):
     x_good = np.squeeze(x_good.numpy())
     x_bad = np.squeeze(x_bad.numpy())
     ssim_res = []
-
     for idx in range(x_good.shape[0]):
         ssim_res.append(skimage.metrics.structural_similarity(x_good[idx], x_bad[idx]))
+
     return ssim_res
 
 
@@ -70,9 +70,7 @@ def psnr(x_good, x_bad):
 # Preparation for VGG
 class VGG_PRE:
     def __init__(self):
-        self.transform_vgg = transforms.Compose([
-            transforms.Resize((244, 244)),
-        ])
+        self.transform_vgg = transforms.Compose([transforms.Resize((244, 244))])
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def __call__(self, x):
@@ -87,16 +85,14 @@ class VGG_PRE:
 
 
 # Logger Setup
-def logging_setup(log_dir):
-    # get current time
-    current_time_str = strftime("%Y_%m_%d_%H_%M_%S", localtime())
+def logging_setup(log_dir, current_time_str):
 
     # generate train log filename
-    log_all_filename = os.path.join(log_dir, 'log_all_{}.log'.format(current_time_str))
+    log_all_filename = os.path.join(log_dir, current_time_str, 'log_all_{}.log'.format(current_time_str))
     # generate eval log filename
-    log_eval_filename = os.path.join(log_dir, 'log_eval_{}.log'.format(current_time_str))
+    log_eval_filename = os.path.join(log_dir, current_time_str, 'log_eval_{}.log'.format(current_time_str))
     # generate test log filename
-    log_test_filename = os.path.join(log_dir, 'log_test_{}.log'.format(current_time_str))
+    log_test_filename = os.path.join(log_dir, current_time_str, 'log_test_{}.log'.format(current_time_str))
 
     # set train log
     log_all = logging.getLogger('log_all')
@@ -108,7 +104,7 @@ def logging_setup(log_dir):
     log_eval.setLevel(logging.INFO)
     log_eval.addHandler(logging.FileHandler(log_eval_filename))
 
-    # set eval log
+    # set test log
     log_test = logging.getLogger('log_test')
     log_test.setLevel(logging.INFO)
     log_test.addHandler(logging.FileHandler(log_test_filename))

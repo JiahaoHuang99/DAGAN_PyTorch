@@ -12,23 +12,26 @@ from time import localtime, strftime, time
 
 
 def main_train(device, model_name, mask_name, mask_perc):
+    # current time
+    current_time = strftime("%Y_%m_%d_%H_%M_%S", localtime())
 
     print('[*] Run Basic Configs ... ')
     # setup log
     log_dir = "log_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(log_dir)
+    isExists = os.path.exists(os.path.join(log_dir, current_time))
     if not isExists:
-        os.makedirs(log_dir)
-    log_all, log_eval, _, log_all_filename, log_eval_filename, _ = logging_setup(log_dir)
+        os.makedirs(os.path.join(log_dir, current_time))
+
+    log_all, log_eval, _, log_all_filename, log_eval_filename, _ = logging_setup(log_dir, current_time)
 
     # tensorbordX logger
-    logger_tensorboard = SummaryWriter('tensorboard/{}/{:3}'.format(log_dir, strftime("%Y_%m_%d_%H_%M_%S", localtime())))
+    logger_tensorboard = SummaryWriter('tensorboard/{}/{}'.format(log_dir, current_time))
 
     # setup checkpoint
     checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(checkpoint_dir)
+    isExists = os.path.exists(os.path.join(checkpoint_dir, current_time))
     if not isExists:
-        os.makedirs(checkpoint_dir)
+        os.makedirs(os.path.join(checkpoint_dir, current_time))
 
     # configs
     batch_size = config.TRAIN.batch_size
@@ -43,6 +46,9 @@ def main_train(device, model_name, mask_name, mask_perc):
     lr_decay_every = config.TRAIN.decay_every
     beta1 = config.TRAIN.beta1
     n_epoch = config.TRAIN.n_epoch
+    is_mini_dataset = config.TRAIN.is_mini_dataset
+    size_mini_trainset = config.TRAIN.size_mini_trainset
+    size_mini_valset = config.TRAIN.size_mini_valset
     log_config(log_all_filename, config)
     log_config(log_eval_filename, config)
 
@@ -55,9 +61,13 @@ def main_train(device, model_name, mask_name, mask_perc):
     data_augment = DataAugment()
     with open(training_data_path, 'rb') as f:
         X_train = torch.from_numpy(load(f))
+        if is_mini_dataset:
+            X_train = X_train[0:size_mini_trainset]
         X_train = data_augment(X_train)
     with open(val_data_path, 'rb') as f:
         X_val = torch.from_numpy(load(f))
+        if is_mini_dataset:
+            X_val = X_val[0:size_mini_valset]
         X_val = data_augment(X_val)
 
     log = 'X_train shape:{}/ min:{}/ max:{}\n'.format(X_train.shape, X_train.min(), X_train.max()) \
@@ -95,7 +105,7 @@ def main_train(device, model_name, mask_name, mask_perc):
     # early stopping
     early_stopping = EarlyStopping(early_stopping_num,
                                    model_name=model_name, mask_name=mask_name, mask_perc=mask_perc,
-                                   verbose=True, checkpoint_path=checkpoint_dir, log_path=log_dir,
+                                   verbose=True, localtime=current_time, checkpoint_path=checkpoint_dir, log_path=log_dir,
                                    log_all=log_all, log_eval=log_eval)
 
     # pre-processing for vgg
@@ -389,11 +399,13 @@ def main_train(device, model_name, mask_name, mask_perc):
             # saving checkpoint
             if (epoch + 1) % save_epoch_every == 0:
                 torch.save(generator.state_dict(),
-                           checkpoint_dir + "/checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
-                           .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
+                           os.path.join(checkpoint_dir, current_time,
+                                        "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                                        .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
                 torch.save(discriminator.state_dict(),
-                           checkpoint_dir + "/checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
-                           .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val))
+                           os.path.join(checkpoint_dir, current_time,
+                                        "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                                        .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
 
             # early stopping
             early_stopping(total_nmse_val, generator, discriminator, epoch)
