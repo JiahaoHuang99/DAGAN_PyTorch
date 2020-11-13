@@ -85,12 +85,12 @@ class VGG_PRE:
 
 
 # Logger Setup for Train and Val
-def logging_setup(log_dir, current_time_str):
+def logging_setup(log_dir):
 
     # generate train log filename
-    log_all_filename = os.path.join(log_dir, current_time_str, 'log_all_{}.log'.format(current_time_str))
+    log_all_filename = os.path.join(log_dir, 'log_all.log')
     # generate eval log filename
-    log_eval_filename = os.path.join(log_dir, current_time_str, 'log_eval_{}.log'.format(current_time_str))
+    log_eval_filename = os.path.join(log_dir, 'log_eval.log')
 
     # set train log
     log_all = logging.getLogger('log_all')
@@ -106,10 +106,10 @@ def logging_setup(log_dir, current_time_str):
 
 
 # Logger Setup for Test
-def logging_test_setup(log_dir, current_time_str):
+def logging_test_setup(log_dir):
 
     # generate test log filename
-    log_test_filename = os.path.join(log_dir, current_time_str, 'log_test_{}.log'.format(current_time_str))
+    log_test_filename = os.path.join(log_dir, 'log_test.log')
 
     # set test log
     log_test = logging.getLogger('log_test')

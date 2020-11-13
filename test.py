@@ -9,9 +9,6 @@ import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
-    # current time
-    current_time = strftime("%Y_%m_%d_%H_%M_%S", localtime())
-
     # configs
     batch_size = config.TRAIN.batch_size
     train_date = config.TRAIN.train_date
@@ -21,23 +18,31 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     print('[*] Run Basic Configs ... ')
     # setup log
-    log_dir = "log_test_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(os.path.join(log_dir, train_date))
+    log_dir = os.path.join("log_test_{}_{}_{}"
+                           .format(model_name, mask_name, mask_perc),
+                           train_date,
+                           weight_unet)
+    isExists = os.path.exists(log_dir)
     if not isExists:
-        os.makedirs(os.path.join(log_dir, train_date))
-    log_test, log_test_filename = logging_setup(log_dir, train_date)
+        os.makedirs(log_dir)
+    log_test, log_test_filename = logging_test_setup(log_dir)
 
     # setup checkpoint
-    checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(os.path.join(checkpoint_dir, train_date))
+    checkpoint_dir = os.path.join("checkpoint_{}_{}_{}"
+                                  .format(model_name, mask_name, mask_perc),
+                                  train_date)
+    isExists = os.path.exists(checkpoint_dir)
     if not isExists:
-        os.makedirs(os.path.join(checkpoint_dir, train_date))
+        os.makedirs(checkpoint_dir)
 
     # setup save dir
-    save_dir = "sample_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(os.path.join(save_dir, train_date))
+    save_dir = os.path.join("sample_{}_{}_{}".
+                            format(model_name, mask_name, mask_perc),
+                            train_date,
+                            weight_unet)
+    isExists = os.path.exists(save_dir)
     if not isExists:
-        os.makedirs(os.path.join(save_dir, train_date))
+        os.makedirs(save_dir)
 
     print('[*] Loading data ... ')
     # data path
@@ -75,7 +80,7 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     print('[*] Loading Network ... ')
     # data loader
-    dataloader_test = torch.utils.data.DataLoader(X_test[0:100], batch_size=batch_size, pin_memory=True, timeout=0,
+    dataloader_test = torch.utils.data.DataLoader(X_test, batch_size=batch_size, pin_memory=True, timeout=0,
                                                   shuffle=True)
     # load unet
     generator = UNet()
@@ -154,11 +159,14 @@ def main_test(device, model_name, mask_name, mask_perc):
         # save image
         for i in range(len(X_good_test_sample)):
             torchvision.utils.save_image(X_good_test_sample[i],
-                                         os.path.join(save_dir, 'GroundTruth_{}.png'.format(i)))
+                                         os.path.join(save_dir,
+                                                      'GroundTruth_{}.png'.format(i)))
             torchvision.utils.save_image(X_generated_test_sample[i],
-                                         os.path.join(save_dir, 'Generated_{}.png'.format(i)))
+                                         os.path.join(save_dir,
+                                                      'Generated_{}.png'.format(i)))
             torchvision.utils.save_image(X_bad_test_sample[i],
-                                         os.path.join(save_dir, 'Bad_{}.png'.format(i)))
+                                         os.path.join(save_dir,
+                                                      'Bad_{}.png'.format(i)))
 
 
 if __name__ == "__main__":

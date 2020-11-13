@@ -7,7 +7,7 @@ class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
 
     def __init__(self, patience=10, model_name='unet', mask_name='gaussian2d', mask_perc=30,
-                 verbose=False, delta=0, localtime='unknown_time', checkpoint_path='./checkpoint_dir', log_path='./log_dir',
+                 verbose=False, delta=0, checkpoint_path='./checkpoint_dir', log_path='./log_dir',
                  log_all=False, log_eval=False, trace_func=print):
 
         self.patience = patience
@@ -21,7 +21,6 @@ class EarlyStopping:
         self.early_stop = False
         self.val_nmse_min = np.Inf
         self.delta = delta
-        self.localtime = localtime
         self.checkpoint_path = checkpoint_path
         self.log_path = log_path
         self.log_all = log_all
@@ -62,10 +61,10 @@ class EarlyStopping:
         # update the min nmse
         self.val_nmse_min = val_nmse
         torch.save(model_g.state_dict(),
-                   os.path.join(self.checkpoint_path, self.localtime,
-                                "best_checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pkl"
+                   os.path.join(self.checkpoint_path,
+                                "best_checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                                 .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))
-        torch.save(model_d.state_dict(),
-                   os.path.join(self.checkpoint_path, self.localtime,
-                                "best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
-                                .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))
+        # torch.save(model_d.state_dict(),
+        #            os.path.join(self.checkpoint_path, self.localtime,
+        #                         "best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+        #                         .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))
