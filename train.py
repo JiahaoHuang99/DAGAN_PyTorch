@@ -22,7 +22,7 @@ def main_train(device, model_name, mask_name, mask_perc):
     if not isExists:
         os.makedirs(os.path.join(log_dir, current_time))
 
-    log_all, log_eval, _, log_all_filename, log_eval_filename, _ = logging_setup(log_dir, current_time)
+    log_all, log_eval, log_all_filename, log_eval_filename = logging_setup(log_dir, current_time)
 
     # tensorbordX logger
     logger_tensorboard = SummaryWriter('tensorboard/{}/{}'.format(log_dir, current_time))

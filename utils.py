@@ -84,15 +84,13 @@ class VGG_PRE:
         return x
 
 
-# Logger Setup
+# Logger Setup for Train and Val
 def logging_setup(log_dir, current_time_str):
 
     # generate train log filename
     log_all_filename = os.path.join(log_dir, current_time_str, 'log_all_{}.log'.format(current_time_str))
     # generate eval log filename
     log_eval_filename = os.path.join(log_dir, current_time_str, 'log_eval_{}.log'.format(current_time_str))
-    # generate test log filename
-    log_test_filename = os.path.join(log_dir, current_time_str, 'log_test_{}.log'.format(current_time_str))
 
     # set train log
     log_all = logging.getLogger('log_all')
@@ -104,14 +102,21 @@ def logging_setup(log_dir, current_time_str):
     log_eval.setLevel(logging.INFO)
     log_eval.addHandler(logging.FileHandler(log_eval_filename))
 
+    return log_all, log_eval, log_all_filename, log_eval_filename
+
+
+# Logger Setup for Test
+def logging_test_setup(log_dir, current_time_str):
+
+    # generate test log filename
+    log_test_filename = os.path.join(log_dir, current_time_str, 'log_test_{}.log'.format(current_time_str))
+
     # set test log
     log_test = logging.getLogger('log_test')
     log_test.setLevel(logging.INFO)
     log_test.addHandler(logging.FileHandler(log_test_filename))
 
-    # logging.Logger object, str
-    return log_all, log_eval, log_test, log_all_filename, log_eval_filename, log_test_filename
-
+    return log_test, log_test_filename
 
 if __name__ == "__main__":
     pass

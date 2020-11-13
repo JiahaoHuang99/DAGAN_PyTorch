@@ -14,29 +14,30 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     # configs
     batch_size = config.TRAIN.batch_size
+    train_date = config.TRAIN.train_date
     weight_unet = config.TRAIN.weight_unet
     is_mini_dataset = config.TRAIN.is_mini_dataset
     size_mini_testset = config.TRAIN.size_mini_testset
 
     print('[*] Run Basic Configs ... ')
     # setup log
-    log_dir = "log_inference_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(log_dir)
+    log_dir = "log_test_{}_{}_{}".format(model_name, mask_name, mask_perc)
+    isExists = os.path.exists(os.path.join(log_dir, train_date))
     if not isExists:
-        os.makedirs(os.path.join(log_dir, current_time))
-    _, _, log_inference, _, _, log_inference_filename = logging_setup(log_dir, current_time)
+        os.makedirs(os.path.join(log_dir, train_date))
+    log_test, log_test_filename = logging_setup(log_dir, train_date)
 
     # setup checkpoint
     checkpoint_dir = "checkpoint_{}_{}_{}".format(model_name, mask_name, mask_perc)
-    isExists = os.path.exists(os.path.join(checkpoint_dir, current_time))
+    isExists = os.path.exists(os.path.join(checkpoint_dir, train_date))
     if not isExists:
-        os.makedirs(os.path.join(checkpoint_dir, current_time))
+        os.makedirs(os.path.join(checkpoint_dir, train_date))
 
     # setup save dir
-    save_dir = "sample_{}_{}_{}/{}".format(model_name, mask_name, mask_perc, weight_unet)
-    isExists = os.path.exists(os.path.join(save_dir, current_time))
+    save_dir = "sample_{}_{}_{}".format(model_name, mask_name, mask_perc)
+    isExists = os.path.exists(os.path.join(save_dir, train_date))
     if not isExists:
-        os.makedirs(os.path.join(save_dir, current_time))
+        os.makedirs(os.path.join(save_dir, train_date))
 
     print('[*] Loading data ... ')
     # data path
@@ -50,7 +51,7 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     log = 'X_test shape:{}/ min:{}/ max:{}'.format(X_test.shape, X_test.min(), X_test.max())
     # print(log)
-    log_inference.info(log)
+    log_test.info(log)
 
     print('[*] Loading Mask ... ')
     if mask_name == "gaussian2d":
@@ -83,10 +84,6 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     # loss function
     mse = nn.MSELoss(reduction='mean').to(device)
-
-    # real and fake label
-    real = 1.
-    fake = 0.
 
     print('[*] Testing  ... ')
     # initialize testing
@@ -152,10 +149,9 @@ def main_test(device, model_name, mask_name, mask_perc):
         log = "NMSE testing average: {:8}\nSSIM testing average: {:8}\nPSNR testing average: {:8}\n\n".format(
             total_nmse_test, total_ssim_test, total_psnr_test)
         print(log)
-        log_inference.debug(log)
+        log_test.debug(log)
 
         # save image
-
         for i in range(len(X_good_test_sample)):
             torchvision.utils.save_image(X_good_test_sample[i],
                                          os.path.join(save_dir, 'GroundTruth_{}.png'.format(i)))
@@ -163,6 +159,7 @@ def main_test(device, model_name, mask_name, mask_perc):
                                          os.path.join(save_dir, 'Generated_{}.png'.format(i)))
             torchvision.utils.save_image(X_bad_test_sample[i],
                                          os.path.join(save_dir, 'Bad_{}.png'.format(i)))
+
 
 if __name__ == "__main__":
     import argparse
