@@ -1,7 +1,7 @@
 from pickle import load
 from model import *
 from utils import *
-from config import config, log_config
+from config import config
 from scipy.io import loadmat
 import torch
 from torch.utils import data
@@ -9,6 +9,7 @@ import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
+    print('[*] Run Basic Configs ... ')
     # configs
     batch_size = config.TRAIN.batch_size
     train_date = config.TRAIN.train_date
@@ -16,7 +17,6 @@ def main_test(device, model_name, mask_name, mask_perc):
     is_mini_dataset = config.TRAIN.is_mini_dataset
     size_mini_testset = config.TRAIN.size_mini_testset
 
-    print('[*] Run Basic Configs ... ')
     # setup log
     log_dir = os.path.join("log_test_{}_{}_{}"
                            .format(model_name, mask_name, mask_perc),
@@ -105,7 +105,9 @@ def main_test(device, model_name, mask_name, mask_perc):
         # testing
         for step, X_good in enumerate(dataloader_test):
             X_good = X_good.to(device)
-            print(step)
+
+            print("step={:3}".format(step))
+
             # (N, H, W, C)-->(N, C, H, W)
             X_good = X_good.permute(0, 3, 1, 2)
             X_bad = to_bad_img(X_good, mask)
@@ -131,9 +133,9 @@ def main_test(device, model_name, mask_name, mask_perc):
             # eval for validation
             nmse_a = mse(X_generated_0_1, X_good_0_1)
             nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
-            nmsn_res = torch.div(nmse_a, nmse_b).cpu().numpy()
-            ssim_res = ssim(X_generated_0_1.cpu(), X_bad_0_1.cpu())
-            psnr_res = psnr(X_generated_0_1.cpu(), X_bad_0_1.cpu())
+            nmsn_res = torch.div(nmse_a, nmse_b).numpy()
+            ssim_res = ssim(X_generated_0_1.cpu(), X_good_0_1.cpu())
+            psnr_res = psnr(X_generated_0_1.cpu(), X_good_0_1.cpu())
 
             total_nmse_test = total_nmse_test + np.sum(nmsn_res)
             total_ssim_test = total_ssim_test + np.sum(ssim_res)
