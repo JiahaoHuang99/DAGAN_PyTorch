@@ -260,11 +260,11 @@ def main_train(device, model_name, mask_name, mask_perc):
                 # eval for training
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
                 nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
-                nmsn_res = torch.div(nmse_a, nmse_b).numpy()
-                ssim_res = ssim(X_generated_0_1, X_bad_0_1)
-                psnr_res = psnr(X_generated_0_1, X_bad_0_1)
+                nmse_res = torch.div(nmse_a, nmse_b).numpy()
+                ssim_res = ssim(X_generated_0_1, X_good_0_1)
+                psnr_res = psnr(X_generated_0_1, X_good_0_1)
 
-                total_nmse_training = total_nmse_training + np.sum(nmsn_res)
+                total_nmse_training = total_nmse_training + np.sum(nmse_res)
                 total_ssim_training = total_ssim_training + np.sum(ssim_res)
                 total_psnr_training = total_psnr_training + np.sum(psnr_res)
 
@@ -373,11 +373,11 @@ def main_train(device, model_name, mask_name, mask_perc):
                 # eval for validation
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
                 nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
-                nmsn_res = torch.div(nmse_a, nmse_b).cpu().numpy()
-                ssim_res = ssim(X_generated_0_1.cpu(), X_bad_0_1.cpu())
-                psnr_res = psnr(X_generated_0_1.cpu(), X_bad_0_1.cpu())
+                nmse_res = torch.div(nmse_a, nmse_b).numpy()
+                ssim_res = ssim(X_generated_0_1.cpu(), X_good_0_1)
+                psnr_res = psnr(X_generated_0_1.cpu(), X_good_0_1)
 
-                total_nmse_val = total_nmse_val + np.sum(nmsn_res)
+                total_nmse_val = total_nmse_val + np.sum(nmse_res)
                 total_ssim_val = total_ssim_val + np.sum(ssim_res)
                 total_psnr_val = total_psnr_val + np.sum(psnr_res)
 
