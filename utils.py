@@ -1,10 +1,11 @@
 import numpy as np
-import skimage.metrics
+import skimage.measure
 from time import localtime, strftime
 import logging
 import os
 import torch.fft
 import torchvision.transforms as transforms
+import scipy
 
 
 # Data Augment
@@ -24,14 +25,31 @@ class DataAugment:
 
 
 # Filtering
-def to_bad_img(x, mask):
+def to_bad_img_(x, mask):
     x = torch.div(torch.add(x, torch.ones_like(x)), 2)
-    fft_x = torch.fft.fftn(x)
-    fft_x = torch.mul(fft_x, mask)
-    x = torch.fft.ifftn(fft_x)
+    x = x
+    for i in range(x.shape[0]):
+        fft_x = torch.fft.fftn(x)
+        fft_x = torch.mul(fft_x, mask)
+        x = torch.fft.ifftn(fft_x)
     x = torch.abs(x)
     x = torch.sub(torch.mul(x, 2), torch.ones_like(x))
 
+    return x
+
+
+def to_bad_img(x, mask):
+    for i in range(x.shape[0]):
+        xx = x[i]
+        xx = (xx + 1.) / 2.
+        fft = scipy.fftpack.fft2(xx[:, :, 0])
+        fft = scipy.fftpack.fftshift(fft)
+        fft = fft * mask
+        fft = scipy.fftpack.ifftshift(fft)
+        xx = scipy.fftpack.ifft2(fft)
+        xx = np.abs(xx)
+        xx = xx * 2 - 1
+        x[i] = xx[:, :, np.newaxis]
     return x
 
 
@@ -51,7 +69,7 @@ def ssim(x_good, x_bad):
     x_bad = np.squeeze(x_bad.numpy())
     ssim_res = []
     for idx in range(x_good.shape[0]):
-        ssim_res.append(skimage.metrics.structural_similarity(x_good[idx], x_bad[idx]))
+        ssim_res.append(skimage.measure.compare_ssim(x_good[idx], x_bad[idx]))
 
     return ssim_res
 
@@ -62,7 +80,7 @@ def psnr(x_good, x_bad):
     x_bad = np.squeeze(x_bad.numpy())
     psnr_res = []
     for idx in range(x_good.shape[0]):
-        psnr_res = skimage.metrics.peak_signal_noise_ratio(x_good[idx], x_bad[idx])
+        psnr_res.append(skimage.measure.compare_psnr(x_good[idx], x_bad[idx]))
 
     return psnr_res
 
@@ -86,7 +104,6 @@ class VGG_PRE:
 
 # Logger Setup for Train and Val
 def logging_setup(log_dir):
-
     # generate train log filename
     log_all_filename = os.path.join(log_dir, 'log_all.log')
     # generate eval log filename
@@ -107,7 +124,6 @@ def logging_setup(log_dir):
 
 # Logger Setup for Test
 def logging_test_setup(log_dir):
-
     # generate test log filename
     log_test_filename = os.path.join(log_dir, 'log_test.log')
 
@@ -117,6 +133,7 @@ def logging_test_setup(log_dir):
     log_test.addHandler(logging.FileHandler(log_test_filename))
 
     return log_test, log_test_filename
+
 
 if __name__ == "__main__":
     pass

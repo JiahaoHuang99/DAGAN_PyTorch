@@ -96,7 +96,6 @@ def main_train(device, model_name, mask_name, mask_perc):
                 'population_matrix']
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
-    mask = torch.from_numpy(mask).to(device)
 
     print('[*] Loading Network ... ')
     # data loader
@@ -155,11 +154,17 @@ def main_train(device, model_name, mask_name, mask_perc):
 
             # starting time for step
             step_time = time()
+
+            # good-->bad
+            X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))
+
+            # cpu-->gpu
             X_good = X_good.to(device)
+            X_bad = X_bad.to(device)
 
             # (N, H, W, C)-->(N, C, H, W)
             X_good = X_good.permute(0, 3, 1, 2)
-            X_bad = to_bad_img(X_good, mask)
+            X_bad = X_bad.permute(0, 3, 1, 2)
 
             # generator
             if model_name == 'unet':
@@ -295,11 +300,17 @@ def main_train(device, model_name, mask_name, mask_perc):
         with torch.no_grad():
             # validation
             for step_val, X_good in enumerate(dataloader_val):
+
+                # good-->bad
+                X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))
+
+                # cpu-->gpu
                 X_good = X_good.to(device)
+                X_bad = X_bad.to(device)
 
                 # (N, H, W, C)-->(N, C, H, W)
                 X_good = X_good.permute(0, 3, 1, 2)
-                X_bad = to_bad_img(X_good, mask)
+                X_bad = X_bad.permute(0, 3, 1, 2)
 
                 # generator
                 if model_name == 'unet':
@@ -374,8 +385,8 @@ def main_train(device, model_name, mask_name, mask_perc):
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
                 nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
                 nmse_res = torch.div(nmse_a, nmse_b).numpy()
-                ssim_res = ssim(X_generated_0_1.cpu(), X_good_0_1)
-                psnr_res = psnr(X_generated_0_1.cpu(), X_good_0_1)
+                ssim_res = ssim(X_generated_0_1, X_good_0_1)
+                psnr_res = psnr(X_generated_0_1, X_good_0_1)
 
                 total_nmse_val = total_nmse_val + np.sum(nmse_res)
                 total_ssim_val = total_ssim_val + np.sum(ssim_res)
