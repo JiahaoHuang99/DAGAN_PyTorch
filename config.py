@@ -7,7 +7,7 @@ config = edict()
 config.TRAIN = edict()
 
 config.TRAIN.image_size = 256
-config.TRAIN.batch_size = 16
+config.TRAIN.batch_size = 7
 config.TRAIN.early_stopping_num = 30
 config.TRAIN.save_every_epoch = 2
 config.TRAIN.lr = 0.0001
@@ -17,7 +17,7 @@ config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999
 config.TRAIN.is_mini_dataset = False
 config.TRAIN.size_mini_trainset = 40
-config.TRAIN.size_mini_valset = 10
+config.TRAIN.size_mini_valset = 40
 config.TRAIN.size_mini_testset = 300
 config.TRAIN.sample_size = 50
 config.TRAIN.g_alpha = 15  # weight for pixel loss

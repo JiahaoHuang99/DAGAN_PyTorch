@@ -409,7 +409,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                 num_val_temp = num_val_temp + batch_size
 
                 # output the sample
-                if step_val % 10 == 0:
+                if step_val % 1 == 0:
                     X_good_val_sample.append(X_good_0_1[0, :, :, :])
                     X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
                     X_bad_val_sample.append(X_bad_0_1[0, :, :, :])
@@ -447,10 +447,10 @@ def main_train(device, model_name, mask_name, mask_perc):
                                                           'Epoch_{}_GroundTruth_{}.png'.format(epoch, i)))
                 torchvision.utils.save_image(X_generated_val_sample[i],
                                              os.path.join(save_dir,
-                                                          'Step_{}_Generated_{}.png'.format(step_val, i)))
+                                                          'Epoch_{}_Generated_{}.png'.format(epoch, i)))
                 torchvision.utils.save_image(X_bad_val_sample[i],
                                              os.path.join(save_dir,
-                                                          'Step_{}_Bad_{}.png'.format(step_val, i)))
+                                                          'Epoch_{}_Bad_{}.png'.format(epoch, i)))
 
             # early stopping
             early_stopping(total_nmse_val, generator, discriminator, epoch)

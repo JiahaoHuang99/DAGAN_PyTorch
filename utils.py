@@ -13,8 +13,8 @@ class DataAugment:
     def __init__(self):
         self.transform_train = transforms.Compose([
             transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(degrees=45),
-            transforms.RandomAffine(0)])
+            transforms.RandomAffine(0)
+        ])
 
     def __call__(self, x):
         x = torch.div(torch.add(x, torch.ones_like(x)), 2)
