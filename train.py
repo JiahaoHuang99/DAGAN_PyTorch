@@ -409,7 +409,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                 num_val_temp = num_val_temp + batch_size
 
                 # output the sample
-                if step_val % 1 == 0:
+                if step_val % 15 == 0:
                     X_good_val_sample.append(X_good_0_1[0, :, :, :])
                     X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
                     X_bad_val_sample.append(X_bad_0_1[0, :, :, :])
