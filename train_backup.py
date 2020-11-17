@@ -1,13 +1,14 @@
-from pickle import load
-from model import *
-from utils import *
-from config import config, log_config
-from scipy.io import loadmat
-import torch
-from torch.utils import data
-import torch.optim as optim
-from pytorchtools import EarlyStopping
 import time
+from pickle import load
+
+import torch.optim as optim
+from scipy.io import loadmat
+from torch.utils import data
+
+from config import config, log_config
+from model import *
+from pytorchtools import EarlyStopping
+from utils import *
 
 
 def main_train(device, model_name, mask_name, mask_perc):

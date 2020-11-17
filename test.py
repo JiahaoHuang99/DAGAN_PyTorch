@@ -1,11 +1,12 @@
 from pickle import load
+
+import torchvision
+from scipy.io import loadmat
+from torch.utils import data
+
+from config import config
 from model import *
 from utils import *
-from config import config
-from scipy.io import loadmat
-import torch
-from torch.utils import data
-import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
@@ -36,7 +37,7 @@ def main_test(device, model_name, mask_name, mask_perc):
         os.makedirs(checkpoint_dir)
 
     # setup save dir
-    save_dir = os.path.join("sample_{}_{}_{}".
+    save_dir = os.path.join("sample_test_{}_{}_{}".
                             format(model_name, mask_name, mask_perc),
                             train_date,
                             weight_unet)

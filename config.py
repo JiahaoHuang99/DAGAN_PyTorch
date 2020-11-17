@@ -1,6 +1,7 @@
-from easydict import EasyDict as edict
 import json
 import os
+
+from easydict import EasyDict as edict
 
 config = edict()
 config.TRAIN = edict()
@@ -15,9 +16,9 @@ config.TRAIN.decay_every = 5
 config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999
 config.TRAIN.is_mini_dataset = False
-config.TRAIN.size_mini_trainset = 10
+config.TRAIN.size_mini_trainset = 40
 config.TRAIN.size_mini_valset = 10
-config.TRAIN.size_mini_testset = 50
+config.TRAIN.size_mini_testset = 300
 config.TRAIN.sample_size = 50
 config.TRAIN.g_alpha = 15  # weight for pixel loss
 config.TRAIN.g_gamma = 0.0025  # weight for perceptual loss
@@ -34,8 +35,9 @@ config.TRAIN.testing_data_path = os.path.join('data', 'MICCAI13_SegChallenge', '
 config.TRAIN.mask_Gaussian1D_path = os.path.join('mask', 'Gaussian1D')
 config.TRAIN.mask_Gaussian2D_path = os.path.join('mask', 'Gaussian2D')
 config.TRAIN.mask_Poisson2D_path = os.path.join('mask', 'Poisson2D')
-config.TRAIN.train_date = '2020_11_16_13_52_00'
-config.TRAIN.weight_unet = 'checkpoint_generator_unet_gaussian2d_30_epoch_20_nmse_0.12056889275836337.pt'
+config.TRAIN.train_date = '2020_11_17_01_00_44'
+config.TRAIN.weight_unet = 'checkpoint_generator_unet_gaussian2d_30_epoch_26_nmse_0.002987398299578411.pt'
+
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:

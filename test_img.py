@@ -1,11 +1,11 @@
 from pickle import load
+
+import torchvision
+from scipy.io import loadmat
+
+from config import config
 from model import *
 from utils import *
-from config import config
-from scipy.io import loadmat
-import torch
-from torch.utils import data
-import torchvision
 
 
 def main_test(device, model_name, mask_name, mask_perc):
@@ -14,16 +14,21 @@ def main_test(device, model_name, mask_name, mask_perc):
     is_mini_dataset = config.TRAIN.is_mini_dataset
     size_mini_testset = config.TRAIN.size_mini_testset
 
-
     print('[*] Loading data ... ')
     # data path
     testing_data_path = config.TRAIN.testing_data_path
+
+    isExists = os.path.exists('test_img')
+    if not isExists:
+        os.makedirs('test_img')
 
     # load data (augment)
     with open(testing_data_path, 'rb') as f:
         X_good = load(f)
         if is_mini_dataset:
-            X_good = X_good[0:size_mini_testset, :, :, :]
+            X_good = X_good[50:size_mini_testset + 50, :, :, :]
+
+    mse = nn.MSELoss(reduction='mean').to(device)
 
     print('[*] Loading Mask ... ')
     if mask_name == "gaussian2d":
@@ -44,11 +49,7 @@ def main_test(device, model_name, mask_name, mask_perc):
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
 
-
-
-    print(X_good.shape)
     X_bad = to_bad_img(X_good, mask)
-    print(X_bad.shape)
 
     X_good = torch.from_numpy(X_good)
     X_good = X_good.to(device)
@@ -61,10 +62,12 @@ def main_test(device, model_name, mask_name, mask_perc):
     X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
     X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
 
+    X_diff_0_1 = torch.sub(X_bad_0_1, X_good_0_1)
     # save image
     for i in range(len(X_good_0_1)):
-        torchvision.utils.save_image(X_good_0_1[i], 'GroundTruth_{}.png'.format(i))
-        torchvision.utils.save_image(X_bad_0_1[i], 'Bad_{}.png'.format(i))
+        torchvision.utils.save_image(X_good_0_1[i], os.path.join('test_img', 'GroundTruth_{}.png'.format(i)))
+        torchvision.utils.save_image(X_bad_0_1[i], os.path.join('test_img', 'Bad_{}.png'.format(i)))
+        torchvision.utils.save_image(X_diff_0_1[i], os.path.join('test_img', 'Diff_{}.png'.format(i)))
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-import numpy as np
-import skimage.measure
-from time import localtime, strftime
 import logging
 import os
+
+import numpy as np
+import scipy
+import skimage.measure
 import torch.fft
 import torchvision.transforms as transforms
-import scipy
 
 
 # Data Augment
@@ -39,18 +39,19 @@ def to_bad_img_(x, mask):
 
 
 def to_bad_img(x, mask):
+    y = x.copy()
     for i in range(x.shape[0]):
-        xx = x[i]
+        xx = x[i, :, :, 0]
         xx = (xx + 1.) / 2.
-        fft = scipy.fftpack.fft2(xx[:, :, 0])
+        fft = scipy.fftpack.fft2(xx)
         fft = scipy.fftpack.fftshift(fft)
         fft = fft * mask
         fft = scipy.fftpack.ifftshift(fft)
         xx = scipy.fftpack.ifft2(fft)
         xx = np.abs(xx)
         xx = xx * 2 - 1
-        x[i] = xx[:, :, np.newaxis]
-    return x
+        y[i, :, :, :] = xx[:, :, np.newaxis]
+    return y
 
 
 # Fourier Transform

@@ -1,6 +1,7 @@
+import os.path
+
 import numpy as np
 import torch
-import os.path
 
 
 class EarlyStopping:
@@ -50,7 +51,6 @@ class EarlyStopping:
         # print(log)
         self.log_all.debug(log)
 
-
     def save_checkpoint(self, val_nmse, model_g, model_d, epoch):
         # save model when validation loss decrease.
         if self.verbose:
@@ -64,7 +64,7 @@ class EarlyStopping:
                    os.path.join(self.checkpoint_path,
                                 "best_checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                                 .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))
-        # torch.save(model_d.state_dict(),
-        #            os.path.join(self.checkpoint_path, self.localtime,
-        #                         "best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
-        #                         .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))
+        torch.save(model_d.state_dict(),
+                   os.path.join(self.checkpoint_path,
+                                "best_checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+                                .format(self.model_name, self.mask_name, self.mask_perc, epoch + 1, self.val_nmse_min)))

@@ -2,7 +2,6 @@ from pickle import load
 from time import localtime, strftime, time
 
 import torch.optim as optim
-import torchvision
 from scipy.io import loadmat
 from tensorboardX import SummaryWriter
 from torch.utils import data
@@ -36,14 +35,6 @@ def main_train(device, model_name, mask_name, mask_perc):
     isExists = os.path.exists(checkpoint_dir)
     if not isExists:
         os.makedirs(os.path.join(checkpoint_dir))
-
-    # setup save dir
-    save_dir = os.path.join("sample_{}_{}_{}".
-                            format(model_name, mask_name, mask_perc),
-                            current_time)
-    isExists = os.path.exists(save_dir)
-    if not isExists:
-        os.makedirs(save_dir)
 
     # configs
     batch_size = config.TRAIN.batch_size
@@ -133,7 +124,7 @@ def main_train(device, model_name, mask_name, mask_perc):
     discriminator = discriminator.to(device)
 
     # loss function
-    bce = nn.BCELoss(reduction='mean').to(device)
+    cel = nn.CrossEntropyLoss(reduction='mean').to(device)
     mse = nn.MSELoss(reduction='mean').to(device)
 
     # real and fake label
@@ -185,8 +176,8 @@ def main_train(device, model_name, mask_name, mask_perc):
                 raise Exception("unknown model")
 
             # discriminator
-            logits_fake = discriminator(X_generated, is_train=True)
-            logits_real = discriminator(X_good, is_train=True)
+            _, logits_fake = discriminator(X_generated, is_train=True)
+            _, logits_real = discriminator(X_good, is_train=True)
 
             # vgg
             X_good_244 = vgg_pre(X_good)
@@ -195,13 +186,18 @@ def main_train(device, model_name, mask_name, mask_perc):
             net_vgg_conv4_gen = vgg16_cnn(X_generated_244)
 
             # discriminator loss
-            d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
-            d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
+            logits = torch.cat((logits_real, logits_fake), dim=0)
+            label_real = torch.zeros_like(logits_real, dtype=torch.long).squeeze()
+            label_fake = torch.ones_like(logits_fake, dtype=torch.long).squeeze()
+            labels = torch.cat((label_real, label_fake), dim=0)
+            d_loss = cel(logits, labels)
 
-            d_loss = d_loss_real + d_loss_fake
+            # d_loss_real = cel(logits_real, torch.ones_like(logits_real, dtype=torch.long).squeeze())
+            # d_loss_fake = cel(logits_fake, torch.zeros_like(logits_fake, dtype=torch.long).squeeze())
+            # d_loss = d_loss_real + d_loss_fake
 
             # generator loss (adversarial)
-            g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
+            g_adversarial = cel(logits_fake, torch.ones_like(logits_fake, dtype=torch.long).squeeze())
 
             # generator loss (perceptual)
             g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
@@ -307,10 +303,6 @@ def main_train(device, model_name, mask_name, mask_perc):
         total_psnr_val = 0
         num_val_temp = 0
 
-        X_good_val_sample = []
-        X_bad_val_sample = []
-        X_generated_val_sample = []
-
         with torch.no_grad():
             # validation
             for step_val, X_good in enumerate(dataloader_val):
@@ -345,13 +337,13 @@ def main_train(device, model_name, mask_name, mask_perc):
                 net_vgg_conv4_gen = vgg16_cnn(X_generated_244)
 
                 # discriminator loss
-                d_loss_real = bce(logits_real, torch.full((logits_real.size()), real).to(device))
-                d_loss_fake = bce(logits_fake, torch.full((logits_fake.size()), fake).to(device))
+                d_loss_real = cel(logits_real, torch.full((logits_real.size()), real).to(device))
+                d_loss_fake = cel(logits_fake, torch.full((logits_fake.size()), fake).to(device))
 
                 d_loss = d_loss_real + d_loss_fake
 
                 # generator loss (adversarial)
-                g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
+                g_adversarial = cel(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
                 # generator loss (perceptual)
                 g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
@@ -408,12 +400,6 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 num_val_temp = num_val_temp + batch_size
 
-                # output the sample
-                if step_val % 10 == 0:
-                    X_good_val_sample.append(X_good_0_1[0, :, :, :])
-                    X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
-                    X_bad_val_sample.append(X_bad_0_1[0, :, :, :])
-
             total_nmse_val = total_nmse_val / num_val_temp
             total_ssim_val = total_ssim_val / num_val_temp
             total_psnr_val = total_psnr_val / num_val_temp
@@ -435,22 +421,10 @@ def main_train(device, model_name, mask_name, mask_perc):
                            os.path.join(checkpoint_dir,
                                         "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
                                         .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
-                torch.save(discriminator.state_dict(),
-                           os.path.join(checkpoint_dir,
-                                        "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
-                                        .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
-
-            # save image
-            for i in range(len(X_good_val_sample)):
-                torchvision.utils.save_image(X_good_val_sample[i],
-                                             os.path.join(save_dir,
-                                                          'Epoch_{}_GroundTruth_{}.png'.format(epoch, i)))
-                torchvision.utils.save_image(X_generated_val_sample[i],
-                                             os.path.join(save_dir,
-                                                          'Step_{}_Generated_{}.png'.format(step_val, i)))
-                torchvision.utils.save_image(X_bad_val_sample[i],
-                                             os.path.join(save_dir,
-                                                          'Step_{}_Bad_{}.png'.format(step_val, i)))
+                # torch.save(discriminator.state_dict(),
+                #            os.path.join(checkpoint_dir,
+                #                         "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+                #                         .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
 
             # early stopping
             early_stopping(total_nmse_val, generator, discriminator, epoch)

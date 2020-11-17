@@ -5,7 +5,7 @@ import torch.nn as nn
 import torchvision.models as models
 
 
-# Discriminator
+# %% Discriminator
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
@@ -77,12 +77,11 @@ class Discriminator(nn.Module):
 
         self.LRelu = nn.LeakyReLU(negative_slope=0.2)
 
-        self.out = nn.Sequential(
-            nn.Linear(self.fin, 1),
-            nn.Sigmoid()
-        )
+        self.linear = nn.Linear(self.fin, 1)
 
-    # forward propagation
+        self.sigmoid = nn.Sigmoid()
+
+    # %% forward propagation
     def forward(self, input_image, is_train=True):
         net_in = input_image
         net_h0 = self.conv0(net_in)
@@ -96,17 +95,18 @@ class Discriminator(nn.Module):
         res_h7 = self.res8(net_h7)
         net_h8 = self.LRelu(res_h7 + net_h7)
         net_ho = net_h8.contiguous().view(net_h8.size(0), -1)
-        logits = self.out(net_ho)
+        logits = self.linear(net_ho)
+        net_ho = self.sigmoid(logits)
 
-        return logits
+        return net_ho, logits
 
 
-# u_net_bn
+# %% u_net_bn
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
 
-        # set parameter
+        # %% set parameter
 
         self.w_init = None  # ??
         self.b_inti = None  # ??
@@ -114,7 +114,7 @@ class UNet(nn.Module):
         self.gf_dim = 64
         self.kernel_size = 4
         self.padding = 1
-        # network
+        # %% network
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=self.gf_dim, kernel_size=self.kernel_size, stride=2,
                       padding=self.padding),
@@ -232,7 +232,7 @@ class UNet(nn.Module):
 
         self.refine = nn.Tanh()  # 源程序是tl.nn.ramp
 
-    # forward propagation
+    # %% forward propagation
     def forward(self, x, is_train=True, is_refine=False):
         input = x
         down1 = self.conv1(input)
@@ -357,6 +357,6 @@ class VGG_CNN(nn.Module):
 #         return feature4, classify_result
 
 
-# main
+# %% main
 if __name__ == "__main__":
     pass
