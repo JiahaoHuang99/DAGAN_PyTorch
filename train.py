@@ -335,8 +335,8 @@ def main_train(device, model_name, mask_name, mask_perc):
                     raise Exception("unknown model")
 
                 # discriminator
-                _, logits_fake = discriminator(X_generated, is_train=False)
-                _, logits_real = discriminator(X_good, is_train=False)
+                logits_fake = discriminator(X_generated, is_train=False)
+                logits_real = discriminator(X_good, is_train=False)
 
                 # vgg
                 X_good_244 = vgg_pre(X_good)
