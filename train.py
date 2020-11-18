@@ -292,8 +292,8 @@ def main_train(device, model_name, mask_name, mask_perc):
 
         # record training eval
         logger_tensorboard.add_scalar('Training/NMSE', total_nmse_training, global_step=epoch)
-        logger_tensorboard.add_scalar('Training/SSIM', total_ssim_training, global_step=epoch)
-        logger_tensorboard.add_scalar('Training/PSNR', total_psnr_training, global_step=epoch)
+        logger_tensorboard.add_scalar('Training/SSIM', total_nmse_training, global_step=epoch)
+        logger_tensorboard.add_scalar('Training/PSNR', total_nmse_training, global_step=epoch)
 
         log = "Epoch: {}  NMSE training: {:8}, SSIM training: {:8}, PSNR training: {:8}".format(
             epoch + 1, total_nmse_training, total_ssim_training, total_psnr_training)
