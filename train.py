@@ -49,13 +49,14 @@ def main_train(device, model_name, mask_name, mask_perc):
     batch_size = config.TRAIN.batch_size
     early_stopping_num = config.TRAIN.early_stopping_num
     save_epoch_every = config.TRAIN.save_every_epoch
+    save_img_every_val_step = config.TRAIN.save_img_every_val_step
     g_alpha = config.TRAIN.g_alpha
     g_beta = config.TRAIN.g_beta
     g_gamma = config.TRAIN.g_gamma
     g_adv = config.TRAIN.g_adv
     lr = config.TRAIN.lr
     lr_decay = config.TRAIN.lr_decay
-    lr_decay_every = config.TRAIN.decay_every
+    lr_decay_every = config.TRAIN.lr_decay_every
     beta1 = config.TRAIN.beta1
     n_epoch = config.TRAIN.n_epoch
     is_mini_dataset = config.TRAIN.is_mini_dataset
@@ -80,7 +81,6 @@ def main_train(device, model_name, mask_name, mask_perc):
         X_val = torch.from_numpy(load(f))
         if is_mini_dataset:
             X_val = X_val[0:size_mini_valset]
-        X_val = data_augment(X_val)
 
     log = 'X_train shape:{}/ min:{}/ max:{}\n'.format(X_train.shape, X_train.min(), X_train.max()) \
           + 'X_val shape:{}/ min:{}/ max:{}'.format(X_val.shape, X_val.min(), X_val.max())
@@ -178,15 +178,15 @@ def main_train(device, model_name, mask_name, mask_perc):
 
             # generator
             if model_name == 'unet':
-                X_generated = generator(X_bad, is_train=True, is_refine=False)
+                X_generated = generator(X_bad, is_refine=False)
             elif model_name == 'unet_refine':
-                X_generated = generator(X_bad, is_train=True, is_refine=True)
+                X_generated = generator(X_bad, is_refine=True)
             else:
                 raise Exception("unknown model")
 
             # discriminator
-            logits_fake = discriminator(X_generated, is_train=True)
-            logits_real = discriminator(X_good, is_train=True)
+            logits_fake = discriminator(X_generated)
+            logits_real = discriminator(X_good)
 
             # vgg
             X_good_244 = vgg_pre(X_good)
@@ -328,15 +328,15 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # generator
                 if model_name == 'unet':
-                    X_generated = generator(X_bad, is_train=False, is_refine=False)
+                    X_generated = generator(X_bad, is_refine=False)
                 elif model_name == 'unet_refine':
-                    X_generated = generator(X_bad, is_train=False, is_refine=True)
+                    X_generated = generator(X_bad, is_refine=True)
                 else:
                     raise Exception("unknown model")
 
                 # discriminator
-                logits_fake = discriminator(X_generated, is_train=False)
-                logits_real = discriminator(X_good, is_train=False)
+                logits_fake = discriminator(X_generated)
+                logits_real = discriminator(X_good)
 
                 # vgg
                 X_good_244 = vgg_pre(X_good)
@@ -409,7 +409,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                 num_val_temp = num_val_temp + batch_size
 
                 # output the sample
-                if step_val % 15 == 0:
+                if step_val % save_img_every_val_step == 0:
                     X_good_val_sample.append(X_good_0_1[0, :, :, :])
                     X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
                     X_bad_val_sample.append(X_bad_0_1[0, :, :, :])

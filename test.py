@@ -12,11 +12,11 @@ from utils import *
 def main_test(device, model_name, mask_name, mask_perc):
     print('[*] Run Basic Configs ... ')
     # configs
-    batch_size = config.TRAIN.batch_size
-    train_date = config.TRAIN.train_date
-    weight_unet = config.TRAIN.weight_unet
-    is_mini_dataset = config.TRAIN.is_mini_dataset
-    size_mini_testset = config.TRAIN.size_mini_testset
+    batch_size = config.TEST.batch_size
+    train_date = config.TEST.train_date
+    weight_unet = config.TEST.weight_unet
+    is_mini_dataset = config.TEST.is_mini_dataset
+    size_mini_testset = config.TEST.size_mini_dataset
 
     # setup log
     log_dir = os.path.join("log_test_{}_{}_{}"
@@ -47,7 +47,7 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     print('[*] Loading data ... ')
     # data path
-    testing_data_path = config.TRAIN.testing_data_path
+    testing_data_path = config.TEST.testing_data_path
 
     # load data (augment)
     with open(testing_data_path, 'rb') as f:
@@ -63,17 +63,17 @@ def main_test(device, model_name, mask_name, mask_perc):
     if mask_name == "gaussian2d":
         mask = \
             loadmat(
-                os.path.join(config.TRAIN.mask_Gaussian2D_path, "GaussianDistribution2DMask_{}.mat".format(mask_perc)))[
+                os.path.join(config.TEST.mask_Gaussian2D_path, "GaussianDistribution2DMask_{}.mat".format(mask_perc)))[
                 'maskRS2']
     elif mask_name == "gaussian1d":
         mask = \
             loadmat(
-                os.path.join(config.TRAIN.mask_Gaussian1D_path, "GaussianDistribution1DMask_{}.mat".format(mask_perc)))[
+                os.path.join(config.TEST.mask_Gaussian1D_path, "GaussianDistribution1DMask_{}.mat".format(mask_perc)))[
                 'maskRS1']
     elif mask_name == "poisson2d":
         mask = \
             loadmat(
-                os.path.join(config.TRAIN.mask_Gaussian1D_path, "PoissonDistributionMask_{}.mat".format(mask_perc)))[
+                os.path.join(config.TEST.mask_Gaussian1D_path, "PoissonDistributionMask_{}.mat".format(mask_perc)))[
                 'population_matrix']
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
@@ -120,9 +120,9 @@ def main_test(device, model_name, mask_name, mask_perc):
 
             # generator
             if model_name == 'unet':
-                X_generated = generator(X_bad, is_train=False, is_refine=False)
+                X_generated = generator(X_bad, is_refine=False)
             elif model_name == 'unet_refine':
-                X_generated = generator(X_bad, is_train=False, is_refine=True)
+                X_generated = generator(X_bad, is_refine=True)
             else:
                 raise Exception("unknown model")
 

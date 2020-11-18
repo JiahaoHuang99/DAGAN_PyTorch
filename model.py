@@ -1,5 +1,3 @@
-# %%
-
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -10,12 +8,11 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.w_init = None  # ??
-        self.b_inti = None  # ??
-        self.gamma_init = None  # ??
+        # set parameter
         self.df_dim = 64
-        self.fin = 8192  # ???
+        self.fin = 8192
 
+        # network
         self.conv0 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=self.df_dim, kernel_size=5, stride=2, padding=2, ),
             nn.LeakyReLU(negative_slope=0.2)
@@ -83,7 +80,7 @@ class Discriminator(nn.Module):
         )
 
     # forward propagation
-    def forward(self, input_image, is_train=True):
+    def forward(self, input_image):
         net_in = input_image
         net_h0 = self.conv0(net_in)
         net_h1 = self.conv1(net_h0)
@@ -101,19 +98,16 @@ class Discriminator(nn.Module):
         return logits
 
 
-# u_net_bn
+# U_Net
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
 
         # set parameter
-
-        self.w_init = None  # ??
-        self.b_inti = None  # ??
-        self.gamma_init = None  # ??
         self.gf_dim = 64
         self.kernel_size = 4
         self.padding = 1
+
         # network
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=self.gf_dim, kernel_size=self.kernel_size, stride=2,
@@ -230,10 +224,10 @@ class UNet(nn.Module):
             nn.Tanh(),
         )
 
-        self.refine = nn.Tanh()  # 源程序是tl.nn.ramp
+        self.refine = nn.Tanh()
 
     # forward propagation
-    def forward(self, x, is_train=True, is_refine=False):
+    def forward(self, x, is_refine=False):
         input = x
         down1 = self.conv1(input)
         down2 = self.conv2(down1)
@@ -262,99 +256,14 @@ class UNet(nn.Module):
 class VGG_CNN(nn.Module):
     def __init__(self):
         super(VGG_CNN, self).__init__()
+
+        # load vgg16
         self.vgg16 = models.vgg16(pretrained=True)
+        # get conv4
         self.vgg16_cnn = nn.Sequential(*list(self.vgg16.features.children())[:-7])
 
     def forward(self, x):
         return self.vgg16_cnn(x)
-
-
-#
-# #%%
-# class VGG(nn.Module):
-#     def __init__(self):
-#         super(VGG,self).__init__()
-#         # define an empty for Conv_ReLU_MaxPool
-#         net1 = []
-#         net2 = []
-#         net3 = []
-#         net4 = []
-#         net5 = []
-#
-#         # block 1
-#         net1.append(nn.Conv2d(in_channels=3, out_channels=64, padding=1, kernel_size=3, stride=1))
-#         net1.append(nn.ReLU())
-#         net1.append(nn.Conv2d(in_channels=64, out_channels=64, padding=1, kernel_size=3, stride=1))
-#         net1.append(nn.ReLU())
-#         net1.append(nn.MaxPool2d(kernel_size=2, stride=2))
-#
-#         # block 2
-#         net2.append(nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1))
-#         net2.append(nn.ReLU())
-#         net2.append(nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1))
-#         net2.append(nn.ReLU())
-#         net2.append(nn.MaxPool2d(kernel_size=2, stride=2))
-#
-#         # block 3
-#         net3.append(nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, stride=1))
-#         net3.append(nn.ReLU())
-#         net3.append(nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1, stride=1))
-#         net3.append(nn.ReLU())
-#         net3.append(nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1, stride=1))
-#         net3.append(nn.ReLU())
-#         net3.append(nn.MaxPool2d(kernel_size=2, stride=2))
-#
-#         # block 4
-#         net4.append(nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net4.append(nn.ReLU())
-#         net4.append(nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net4.append(nn.ReLU())
-#         net4.append(nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net4.append(nn.ReLU())
-#         net4.append(nn.MaxPool2d(kernel_size=2, stride=2))
-#
-#         # block 5
-#         net5.append(nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net5.append(nn.ReLU())
-#         net5.append(nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net5.append(nn.ReLU())
-#         net5.append(nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1, stride=1))
-#         net5.append(nn.ReLU())
-#         net5.append(nn.MaxPool2d(kernel_size=2, stride=2))
-#
-#         # add net into class property
-#         self.extract_feature1 = nn.Sequential(*net1)
-#         self.extract_feature2 = nn.Sequential(*net2)
-#         self.extract_feature3 = nn.Sequential(*net3)
-#         self.extract_feature4 = nn.Sequential(*net4)
-#         self.extract_feature5 = nn.Sequential(*net5)
-#
-#         # define an empty container for Linear operations
-#         classifier = []
-#         classifier.append(nn.Linear(in_features=512*7*7, out_features=4096))
-#         classifier.append(nn.ReLU())
-#         classifier.append(nn.Dropout(p=0.5))
-#         classifier.append(nn.Linear(in_features=4096, out_features=4096))
-#         classifier.append(nn.ReLU())
-#         classifier.append(nn.Dropout(p=0.5))
-#         classifier.append(nn.Linear(in_features=4096, out_features=1))
-#
-#         # add classifier into class property
-#         self.classifier = nn.Sequential(*classifier)
-#
-# #%%
-#     def forward(self, x):
-#
-#         x = self.extract_feature1(x)
-#         x = self.extract_feature2(x)
-#         x = self.extract_feature3(x)
-#         feature4 = self.extract_feature4(x)
-#         x = self.extract_feature5(feature4)
-#
-#         x = x.view(x.size(0), -1)
-#         classify_result = self.classifier(x)
-#
-#         return feature4, classify_result
 
 
 # main
