@@ -1,5 +1,6 @@
 # DAGAN_PyTorch
 
+
 This is a re-implementation code in PyTorch by Jiahao Huang for [DAGAN: Deep De-Aliasing Generative Adversarial Networks for Fast Compressed Sensing MRI Reconstruction](https://ieeexplore.ieee.org/document/8233175/) published in IEEE Transactions on Medical Imaging (2018).  
 [Guang Yang](https://www.imperial.ac.uk/people/g.yang)\, [Simiao Yu](https://nebulav.github.io/)\, et al.  
 (* equal contributions) 
@@ -37,8 +38,7 @@ The original code is in python 3.6 under the following dependencies:
 8. crc32c (v2.2)
 9. soundfile (v0.10.3.post1)
 
-Thr
-Code tested in Ubuntu 16.04 with Nvidia GPU + CUDA(10.1) CuDNN (v7.6.0.64)
+The Code tested in Windows10 with Nvidia GPU + CUDA(10.1) CuDNN (v7.6.0.64)
 
 # How to use
 
@@ -49,6 +49,7 @@ Code tested in Ubuntu 16.04 with Nvidia GPU + CUDA(10.1) CuDNN (v7.6.0.64)
     training.pickle
     validation.pickle
     into data/MICCAI13_SegChallenge/
+    
 2. Download pretrained VGG16 model
 
     1) run python setup_vgg.py

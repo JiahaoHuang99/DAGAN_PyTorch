@@ -25,17 +25,17 @@ class DataAugment:
 
 
 # Filtering
-def to_bad_img_(x, mask):
-    x = torch.div(torch.add(x, torch.ones_like(x)), 2)
-    x = x
-    for i in range(x.shape[0]):
-        fft_x = torch.fft.fftn(x)
-        fft_x = torch.mul(fft_x, mask)
-        x = torch.fft.ifftn(fft_x)
-    x = torch.abs(x)
-    x = torch.sub(torch.mul(x, 2), torch.ones_like(x))
-
-    return x
+# def to_bad_img_(x, mask):
+#     x = torch.div(torch.add(x, torch.ones_like(x)), 2)
+#     x = x
+#     for i in range(x.shape[0]):
+#         fft_x = torch.fft.fftn(x)
+#         fft_x = torch.mul(fft_x, mask)
+#         x = torch.fft.ifftn(fft_x)
+#     x = torch.abs(x)
+#     x = torch.sub(torch.mul(x, 2), torch.ones_like(x))
+#
+#     return x
 
 
 def to_bad_img(x, mask):

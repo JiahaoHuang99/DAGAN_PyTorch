@@ -29,7 +29,7 @@ def main_train(device, model_name, mask_name, mask_perc):
     # tensorbordX logger
     logger_tensorboard = SummaryWriter(os.path.join('tensorboard', log_dir))
 
-    # setup checkpoint
+    # setup checkpoint dir
     checkpoint_dir = os.path.join("checkpoint_{}_{}_{}"
                                   .format(model_name, mask_name, mask_perc),
                                   current_time)
