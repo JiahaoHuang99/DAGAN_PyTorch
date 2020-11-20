@@ -20,7 +20,7 @@ config.TRAIN.lr_decay_every = 5  # decay every epoch
 config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999  # total epoch
 
-config.TRAIN.is_mini_dataset = False  # for debug
+config.TRAIN.is_mini_dataset = True  # for debug
 config.TRAIN.size_mini_trainset = 40
 config.TRAIN.size_mini_valset = 40
 
