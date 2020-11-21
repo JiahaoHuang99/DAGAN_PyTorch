@@ -14,19 +14,20 @@ from utils import *
 
 
 def main_train(device, model_name, mask_name, mask_perc):
+    print('[*] Run Basic Configs ... ')
     # current time
     current_time = strftime("%Y_%m_%d_%H_%M_%S", localtime())
 
-    print('[*] Run Basic Configs ... ')
     # setup log
-    log_dir = os.path.join("log_{}_{}_{}".format(model_name, mask_name, mask_perc), current_time)
+    log_dir = os.path.join("log_{}_{}_{}".
+                           format(model_name, mask_name, mask_perc),
+                           current_time)
     isExists = os.path.exists(log_dir)
     if not isExists:
         os.makedirs(log_dir)
-
     log_all, log_eval, log_all_filename, log_eval_filename = logging_setup(log_dir)
 
-    # tensorbordX logger
+    # tensorbordX log
     logger_tensorboard = SummaryWriter(os.path.join('tensorboard', log_dir))
 
     # setup checkpoint dir
@@ -113,6 +114,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                                              shuffle=True)
     dataloader_val = torch.utils.data.DataLoader(X_val, batch_size=batch_size, pin_memory=True, timeout=0,
                                                  shuffle=True)
+
     # early stopping
     early_stopping = EarlyStopping(early_stopping_num,
                                    model_name=model_name, mask_name=mask_name, mask_perc=mask_perc,
@@ -125,14 +127,16 @@ def main_train(device, model_name, mask_name, mask_perc):
     # load vgg
     vgg16_cnn = VGG_CNN()
     vgg16_cnn = vgg16_cnn.to(device)
+
     # load unet
     generator = UNet()
     generator = generator.to(device)
+
     # load discriminator
     discriminator = Discriminator()
     discriminator = discriminator.to(device)
 
-    # loss function
+    # load loss function
     bce = nn.BCELoss(reduction='mean').to(device)
     mse = nn.MSELoss(reduction='mean').to(device)
 
@@ -264,13 +268,13 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # gpu --> cpu
                 X_good = X_good.cpu()
-                X_generated = X_generated.cpu()
                 X_bad = X_bad.cpu()
+                X_generated = X_generated.cpu()
 
                 # (-1,1)-->(0,1)
                 X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
-                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
                 X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
+                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
 
                 # eval for training
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
@@ -387,13 +391,13 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # gpu --> cpu
                 X_good = X_good.cpu()
-                X_generated = X_generated.cpu()
                 X_bad = X_bad.cpu()
+                X_generated = X_generated.cpu()
 
                 # (-1,1)-->(0,1)
                 X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
-                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
                 X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
+                X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
 
                 # eval for validation
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
@@ -411,8 +415,8 @@ def main_train(device, model_name, mask_name, mask_perc):
                 # output the sample
                 if step_val % save_img_every_val_step == 0:
                     X_good_val_sample.append(X_good_0_1[0, :, :, :])
-                    X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
                     X_bad_val_sample.append(X_bad_0_1[0, :, :, :])
+                    X_generated_val_sample.append(X_generated_0_1[0, :, :, :])
 
             total_nmse_val = total_nmse_val / num_val_temp
             total_ssim_val = total_ssim_val / num_val_temp
@@ -445,12 +449,12 @@ def main_train(device, model_name, mask_name, mask_perc):
                 torchvision.utils.save_image(X_good_val_sample[i],
                                              os.path.join(save_dir,
                                                           'Epoch_{}_GroundTruth_{}.png'.format(epoch, i)))
-                torchvision.utils.save_image(X_generated_val_sample[i],
-                                             os.path.join(save_dir,
-                                                          'Epoch_{}_Generated_{}.png'.format(epoch, i)))
                 torchvision.utils.save_image(X_bad_val_sample[i],
                                              os.path.join(save_dir,
                                                           'Epoch_{}_Bad_{}.png'.format(epoch, i)))
+                torchvision.utils.save_image(X_generated_val_sample[i],
+                                             os.path.join(save_dir,
+                                                          'Epoch_{}_Generated_{}.png'.format(epoch, i)))
 
             # early stopping
             early_stopping(total_nmse_val, generator, discriminator, epoch)

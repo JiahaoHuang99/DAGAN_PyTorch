@@ -13,14 +13,14 @@ config.TRAIN.image_size = 256
 config.TRAIN.batch_size = 16
 config.TRAIN.early_stopping_num = 30
 config.TRAIN.save_every_epoch = 2
-config.TRAIN.save_img_every_val_step = 30
+config.TRAIN.save_img_every_val_step = 50
 config.TRAIN.lr = 0.0001  # init learning rate
 config.TRAIN.lr_decay = 0.5  # learning rate decay rate
 config.TRAIN.lr_decay_every = 5  # decay every epoch
 config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999  # total epoch
 
-config.TRAIN.is_mini_dataset = True  # for debug
+config.TRAIN.is_mini_dataset = False  # for debug
 config.TRAIN.size_mini_trainset = 40
 config.TRAIN.size_mini_valset = 40
 
@@ -43,8 +43,8 @@ config.TEST.batch_size = 7
 config.TEST.is_mini_dataset = True  # for debug
 config.TEST.size_mini_dataset = 300
 
-config.TEST.train_date = '2020_11_18_16_07_46'
-config.TEST.weight_unet = 'best_checkpoint_generator_unet_gaussian2d_30_epoch_1_nmse_0.1069742100579398.pt'
+config.TEST.train_date = '2020_11_17_22_19_14'
+config.TEST.weight_unet = 'best_checkpoint_generator_unet_gaussian2d_30_epoch_30_nmse_0.000142498295917324.pt'
 
 config.TEST.VGG16_path = os.path.join('trained_model', 'VGG16', 'vgg16_weights.npz')
 config.TEST.testing_data_path = os.path.join('data', 'MICCAI13_SegChallenge', 'testing.pickle')

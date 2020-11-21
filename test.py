@@ -1,6 +1,7 @@
 from pickle import load
 
 import torchvision
+import torchvision.utils as vutils
 from scipy.io import loadmat
 from torch.utils import data
 
@@ -28,7 +29,7 @@ def main_test(device, model_name, mask_name, mask_perc):
         os.makedirs(log_dir)
     log_test, log_test_filename = logging_test_setup(log_dir)
 
-    # setup checkpoint
+    # setup checkpoint dir
     checkpoint_dir = os.path.join("checkpoint_{}_{}_{}"
                                   .format(model_name, mask_name, mask_perc),
                                   train_date)
@@ -87,7 +88,7 @@ def main_test(device, model_name, mask_name, mask_perc):
     generator = generator.to(device)
     generator.load_state_dict(torch.load(os.path.join(checkpoint_dir, weight_unet)))
 
-    # loss function
+    # load loss function
     mse = nn.MSELoss(reduction='mean').to(device)
 
     print('[*] Testing  ... ')
@@ -100,6 +101,7 @@ def main_test(device, model_name, mask_name, mask_perc):
     X_good_test_sample = []
     X_bad_test_sample = []
     X_generated_test_sample = []
+    X_diff_x10_test_sample = []
 
     with torch.no_grad():
         # testing
@@ -128,13 +130,16 @@ def main_test(device, model_name, mask_name, mask_perc):
 
             # gpu --> cpu
             X_good = X_good.cpu()
-            X_generated = X_generated.cpu()
             X_bad = X_bad.cpu()
+            X_generated = X_generated.cpu()
 
             # (-1,1)-->(0,1)
             X_good_0_1 = torch.div(torch.add(X_good, torch.ones_like(X_good)), 2)
-            X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
             X_bad_0_1 = torch.div(torch.add(X_bad, torch.ones_like(X_bad)), 2)
+            X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
+
+            # X_diff_x10
+            X_diff_0_1_x10 = torch.mul(torch.abs(torch.sub(X_good_0_1, X_generated_0_1)), 10)
 
             # eval for validation
             nmse_a = mse(X_generated_0_1, X_good_0_1)
@@ -151,8 +156,9 @@ def main_test(device, model_name, mask_name, mask_perc):
 
             # output the sample
             X_good_test_sample.append(X_good_0_1[0, :, :, :])
-            X_generated_test_sample.append(X_generated_0_1[0, :, :, :])
             X_bad_test_sample.append(X_bad_0_1[0, :, :, :])
+            X_generated_test_sample.append(X_generated_0_1[0, :, :, :])
+            X_diff_x10_test_sample.append(X_diff_0_1_x10[0, :, :, :])
 
         total_nmse_test = total_nmse_test / num_test_temp
         total_ssim_test = total_ssim_test / num_test_temp
@@ -164,17 +170,40 @@ def main_test(device, model_name, mask_name, mask_perc):
         print(log)
         log_test.debug(log)
 
+        # result
+        selected_index = np.random.randint(len(X_good_test_sample), size=25)
+        X_good_test_sample = torch.stack([X_good_test_sample[i] for i in selected_index])
+        X_bad_test_sample = torch.stack([X_bad_test_sample[i] for i in selected_index])
+        X_generated_test_sample = torch.stack([X_generated_test_sample[i] for i in selected_index])
+        X_diff_x10_test_sample = torch.stack([X_diff_x10_test_sample[i] for i in selected_index])
+
         # save image
         for i in range(len(X_good_test_sample)):
             torchvision.utils.save_image(X_good_test_sample[i],
                                          os.path.join(save_dir,
                                                       'GroundTruth_{}.png'.format(i)))
-            torchvision.utils.save_image(X_generated_test_sample[i],
-                                         os.path.join(save_dir,
-                                                      'Generated_{}.png'.format(i)))
             torchvision.utils.save_image(X_bad_test_sample[i],
                                          os.path.join(save_dir,
                                                       'Bad_{}.png'.format(i)))
+            torchvision.utils.save_image(X_generated_test_sample[i],
+                                         os.path.join(save_dir,
+                                                      'Generated_{}.png'.format(i)))
+            torchvision.utils.save_image(X_diff_x10_test_sample[i],
+                                         os.path.join(save_dir,
+                                                      'Diff_{}.png'.format(i)))
+
+        torchvision.utils.save_image(vutils.make_grid(X_good_test_sample, padding=2, nrow=5),
+                                     os.path.join(save_dir,
+                                                  'GroundTruth.png'))
+        torchvision.utils.save_image(vutils.make_grid(X_bad_test_sample, padding=2, nrow=5),
+                                     os.path.join(save_dir,
+                                                  'Bad.png'))
+        torchvision.utils.save_image(vutils.make_grid(X_generated_test_sample, padding=2, nrow=5),
+                                     os.path.join(save_dir,
+                                                  'Generated.png'))
+        torchvision.utils.save_image(vutils.make_grid(X_diff_x10_test_sample, padding=2, nrow=5),
+                                     os.path.join(save_dir,
+                                                  'Diff.png'))
 
 
 if __name__ == "__main__":

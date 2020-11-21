@@ -2,8 +2,8 @@ import logging
 import os
 
 import numpy as np
-import scipy
-import skimage.measure
+import scipy.fftpack
+import skimage.metrics
 import torch.fft
 import torchvision.transforms as transforms
 
@@ -70,7 +70,7 @@ def ssim(x_good, x_bad):
     x_bad = np.squeeze(x_bad.numpy())
     ssim_res = []
     for idx in range(x_good.shape[0]):
-        ssim_res.append(skimage.measure.compare_ssim(x_good[idx], x_bad[idx]))
+        ssim_res.append(skimage.metrics.structural_similarity(x_good[idx], x_bad[idx]))
 
     return ssim_res
 
@@ -81,7 +81,7 @@ def psnr(x_good, x_bad):
     x_bad = np.squeeze(x_bad.numpy())
     psnr_res = []
     for idx in range(x_good.shape[0]):
-        psnr_res.append(skimage.measure.compare_psnr(x_good[idx], x_bad[idx]))
+        psnr_res.append(skimage.metrics.peak_signal_noise_ratio(x_good[idx], x_bad[idx]))
 
     return psnr_res
 

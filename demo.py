@@ -1,26 +1,15 @@
 from pickle import load
-from time import localtime, strftime, time
 
-import torch.optim as optim
-import torchvision
-from scipy.io import loadmat
-from tensorboardX import SummaryWriter
 from torch.utils import data
 
-from config import config, log_config
+from config import config
 from model import *
-from pytorchtools import EarlyStopping
 from utils import *
-import matplotlib
-
-import scipy.misc
 
 
 def main_train(device, model_name, mask_name, mask_perc):
-
     is_mini_dataset = config.TRAIN.is_mini_dataset
     size_mini_valset = config.TRAIN.size_mini_valset
-
 
     print('[*] Loading Data ... ')
     val_data_path = config.TRAIN.val_data_path
@@ -52,7 +41,6 @@ def main_train(device, model_name, mask_name, mask_perc):
     global GLOBAL_STEP
     GLOBAL_STEP = 0
 
-
     # training
     for step_val, X_good_256 in enumerate(dataloader_val):
         t288 = transforms.Resize((288, 288))
@@ -62,7 +50,6 @@ def main_train(device, model_name, mask_name, mask_perc):
         X_good_288 = t288(X_good_256)
         X_good_384 = t384(X_good_256)
         print(step_val)
-
 
         X_good_288 = discriminator(X_good_288)
 
@@ -84,7 +71,6 @@ def main_train(device, model_name, mask_name, mask_perc):
         # # discriminator
         # # logits_fake = discriminator(X_generated)
         # logits_real = discriminator(X_good_256)
-
 
 
 if __name__ == "__main__":
