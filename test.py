@@ -84,7 +84,7 @@ def main_test(device, model_name, mask_name, mask_perc):
     dataloader_test = torch.utils.data.DataLoader(X_test, batch_size=batch_size, pin_memory=True, timeout=0,
                                                   shuffle=True)
     # load unet
-    generator = UNet()
+    generator = UNet().eval()
     generator = generator.to(device)
     generator.load_state_dict(torch.load(os.path.join(checkpoint_dir, weight_unet)))
 
@@ -144,11 +144,11 @@ def main_test(device, model_name, mask_name, mask_perc):
             # eval for validation
             nmse_a = mse(X_generated_0_1, X_good_0_1)
             nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
-            nmsn_res = torch.div(nmse_a, nmse_b).numpy()
+            nmse_res = torch.div(nmse_a, nmse_b).numpy()
             ssim_res = ssim(X_generated_0_1, X_good_0_1)
             psnr_res = psnr(X_generated_0_1, X_good_0_1)
 
-            total_nmse_test = total_nmse_test + np.sum(nmsn_res)
+            total_nmse_test = total_nmse_test + np.sum(nmse_res)
             total_ssim_test = total_ssim_test + np.sum(ssim_res)
             total_psnr_test = total_psnr_test + np.sum(psnr_res)
 

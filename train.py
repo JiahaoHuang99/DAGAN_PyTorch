@@ -332,9 +332,9 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # generator
                 if model_name == 'unet':
-                    X_generated = generator(X_bad, is_refine=False)
+                    X_generated = generator.eval()(X_bad, is_refine=False)
                 elif model_name == 'unet_refine':
-                    X_generated = generator(X_bad, is_refine=True)
+                    X_generated = generator.eval()(X_bad, is_refine=True)
                 else:
                     raise Exception("unknown model")
 
