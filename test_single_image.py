@@ -61,6 +61,9 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
 
     print('[*] Loading Network ... ')
 
+    # pre-processing for vgg
+    preprocessing = PREPROCESS()
+
     # load unet
     generator = UNet().eval()
     generator = generator.to(device)
@@ -70,6 +73,8 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
 
     with torch.no_grad():
         # testing
+        # pre-processing for unet
+        X_good = preprocessing(X_good)
 
         # good-->bad
         X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))
