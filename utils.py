@@ -6,6 +6,7 @@ import scipy.fftpack
 import skimage.metrics
 import torch.fft
 import torchvision.transforms as transforms
+from math import ceil
 
 
 # Data Augment
@@ -99,6 +100,46 @@ class VGG_PRE:
                                 .reshape((1, 3, 1, 1)))
         x = torch.sub(x, mean.to(self.device))
         x = self.transform_vgg(x)
+
+        return x
+
+
+# Preparation for UNet
+class PREPROCESS:
+    def __init__(self):
+        pass
+
+    def __call__(self, x):
+        x = x.permute(0, 3, 1, 2)
+
+        h_padding = 256 - x.shape[2]
+        w_padding = 256 - x.shape[3]
+        if h_padding > 0:
+            h_padding_t = ceil(h_padding / 2)  # 128 + ceil(x.shape[2]/2)
+            h_padding_b = h_padding - h_padding_t  # 128 - ceil(x.shape[2]/2) - x.shape[2]
+            h_cutting_t = 0
+            h_cutting_b = 256
+        else:
+            h_padding_t = 0
+            h_padding_b = 0
+            h_cutting_t = ceil(x.shape[2] / 2) - 128
+            h_cutting_b = ceil(x.shape[2] / 2) + 128
+        if w_padding > 0:
+            w_padding_l = ceil(w_padding / 2)  # 128 + ceil(x.shape[3]/2)
+            w_padding_r = w_padding - w_padding_l  # 128 - ceil(x.shape[3]/2) - x.shape[3]
+            w_cutting_t = 0
+            w_cutting_b = 256
+        else:
+            w_padding_l = 0
+            w_padding_r = 0
+            w_cutting_t = ceil(x.shape[3] / 2) - 128
+            w_cutting_b = ceil(x.shape[3] / 2) + 128
+
+        constant_padding = torch.nn.ConstantPad2d((w_padding_l, w_padding_r, h_padding_t, h_padding_b), -1)
+        x = constant_padding(x)
+        x = x[:, :, h_cutting_t:h_cutting_b, w_cutting_t:w_cutting_b]
+
+        x = x.permute(0, 2, 3, 1)
 
         return x
 

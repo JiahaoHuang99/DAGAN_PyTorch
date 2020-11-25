@@ -8,14 +8,14 @@ from config import config
 from model import *
 from utils import *
 
+from cv2 import resize
 
 def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_date, weight_unet):
 
     print('[*] Run Basic Configs ... ')
-    # input size, use 200 255 300
-    size = 300
-    h_size = size
-    w_size = size
+    # input size
+    h_size = 200
+    w_size = 300
 
     # setup checkpoint dir
     checkpoint_dir = os.path.join("checkpoint_{}_{}_{}"
@@ -38,7 +38,7 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
 
     input_image = imread(input_image_path, as_gray=True)
 
-    input_image = np.resize(input_image, (h_size, w_size))
+    input_image = resize(input_image, (h_size, w_size))
 
     input_image = input_image * 2 - 1
 
@@ -66,9 +66,11 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
                 'population_matrix']
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
-    mask = np.resize(mask, (h_size, w_size))
 
     print('[*] Loading Network ... ')
+
+    # pre-processing for vgg
+    preprocessing = PREPROCESS()
 
     # load unet
     generator = UNet().eval()
@@ -79,6 +81,8 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
 
     with torch.no_grad():
         # testing
+        # pre-processing for unet
+        X_good = preprocessing(X_good)
 
         # good-->bad
         X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))

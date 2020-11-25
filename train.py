@@ -122,6 +122,9 @@ def main_train(device, model_name, mask_name, mask_perc):
                                    log_all=log_all, log_eval=log_eval)
 
     # pre-processing for vgg
+    preprocessing = PREPROCESS()
+
+    # pre-processing for vgg
     vgg_pre = VGG_PRE()
 
     # load vgg
@@ -168,6 +171,9 @@ def main_train(device, model_name, mask_name, mask_perc):
 
             # starting time for step
             step_time = time()
+
+            # pre-processing for unet
+            X_good = preprocessing(X_good)
 
             # good-->bad
             X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))
@@ -318,6 +324,9 @@ def main_train(device, model_name, mask_name, mask_perc):
         with torch.no_grad():
             # validation
             for step_val, X_good in enumerate(dataloader_val):
+
+                # pre-processing for unet
+                X_good = preprocessing(X_good)
 
                 # good-->bad
                 X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))

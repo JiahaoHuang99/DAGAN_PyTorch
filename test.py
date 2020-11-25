@@ -83,6 +83,10 @@ def main_test(device, model_name, mask_name, mask_perc):
     # data loader
     dataloader_test = torch.utils.data.DataLoader(X_test, batch_size=batch_size, pin_memory=True, timeout=0,
                                                   shuffle=True)
+
+    # pre-processing for vgg
+    preprocessing = PREPROCESS()
+
     # load unet
     generator = UNet().eval()
     generator = generator.to(device)
@@ -108,6 +112,8 @@ def main_test(device, model_name, mask_name, mask_perc):
         for step, X_good in enumerate(dataloader_test):
 
             print("step={:3}".format(step))
+            # pre-processing for unet
+            X_good = preprocessing(X_good)
 
             # good-->bad
             X_bad = torch.from_numpy(to_bad_img(X_good.numpy(), mask))

@@ -2,3 +2,10 @@
 data/MICCAI13_SegChallenge/testing.pickle
 data/MICCAI13_SegChallenge/training.pickle
 data/MICCAI13_SegChallenge/validation.pickle
+checkpoint_unet_gaussian2d_30
+log_test_unet_gaussian2d_30
+log_unet_gaussian2d_30
+sample_test_unet_gaussian2d_30
+sample_unet_gaussian2d_30
+tensorboard
+sample
