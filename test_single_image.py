@@ -36,7 +36,7 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
 
     input_image = input_image[np.newaxis, :, :, np.newaxis]
     X_good = (torch.from_numpy(input_image)).type(torch.float32)
-    # X_good = X_good.repeat(batch_size, 1, 1, 1)
+
     log = 'X_good shape:{}/ min:{}/ max:{}'.format(X_good.shape, X_good.min(), X_good.max())
     print(log)
 
