@@ -214,7 +214,7 @@ def main_train(device, model_name, mask_name, mask_perc):
             g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
             # generator loss (perceptual)
-            g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
+            g_perceptual = mse(net_vgg_conv4_gen, net_vgg_conv4_good)
 
             # generator loss (pixel-wise)
             g_nmse_a = mse(X_generated, X_good)
@@ -367,7 +367,7 @@ def main_train(device, model_name, mask_name, mask_perc):
                 g_adversarial = bce(logits_fake, torch.full((logits_fake.size()), real).to(device))
 
                 # generator loss (perceptual)
-                g_perceptual = mse(net_vgg_conv4_good, net_vgg_conv4_gen)
+                g_perceptual = mse(net_vgg_conv4_gen, net_vgg_conv4_good)
 
                 # generator loss (pixel-wise)
                 g_nmse_a = mse(X_generated, X_good)
