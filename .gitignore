@@ -7,3 +7,5 @@ sample_test_unet_gaussian2d_30
 sample_unet_gaussian2d_30
 tensorboard
 sample
+__pycache__
+.idea
