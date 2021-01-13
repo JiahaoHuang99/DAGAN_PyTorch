@@ -10,7 +10,7 @@ config.VAL = edict()
 
 # train & val
 config.TRAIN.image_size = 256
-config.TRAIN.batch_size = 7
+config.TRAIN.batch_size = 6
 config.TRAIN.early_stopping_num = 30
 config.TRAIN.save_every_epoch = 2
 config.TRAIN.save_img_every_val_step = 50
@@ -21,8 +21,8 @@ config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999  # total epoch
 
 config.TRAIN.is_mini_dataset = True  # for debug
-config.TRAIN.size_mini_trainset = 40
-config.TRAIN.size_mini_valset = 40
+config.TRAIN.size_mini_trainset = 300
+config.TRAIN.size_mini_valset = 60
 
 config.TRAIN.g_alpha = 15  # weight for pixel loss
 config.TRAIN.g_gamma = 0.0025  # weight for perceptual loss
