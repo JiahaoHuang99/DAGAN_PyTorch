@@ -9,7 +9,6 @@ from torch.utils import data
 
 from config import config, log_config
 from model import *
-from pytorchtools import EarlyStopping
 from utils import *
 
 

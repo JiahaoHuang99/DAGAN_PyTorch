@@ -14,6 +14,7 @@ def main_test(device, model_name, mask_name, mask_perc):
     print('[*] Run Basic Configs ... ')
     # configs
     batch_size = config.TEST.batch_size
+    diff_rate = config.TEST.diff_rate
     train_date = config.TEST.train_date
     weight_unet = config.TEST.weight_unet
     is_mini_dataset = config.TEST.is_mini_dataset
@@ -45,6 +46,19 @@ def main_test(device, model_name, mask_name, mask_perc):
     isExists = os.path.exists(save_dir)
     if not isExists:
         os.makedirs(save_dir)
+
+    isExists = os.path.exists(os.path.join(save_dir, 'GroundTruth'))
+    if not isExists:
+        os.makedirs(os.path.join(save_dir, 'GroundTruth'))
+    isExists = os.path.exists(os.path.join(save_dir, 'Generated'))
+    if not isExists:
+        os.makedirs(os.path.join(save_dir, 'Generated'))
+    isExists = os.path.exists(os.path.join(save_dir, 'Bad'))
+    if not isExists:
+        os.makedirs(os.path.join(save_dir, 'Bad'))
+    isExists = os.path.exists(os.path.join(save_dir, 'Diff'))
+    if not isExists:
+        os.makedirs(os.path.join(save_dir, 'Diff'))
 
     print('[*] Loading data ... ')
     # data path
@@ -97,21 +111,23 @@ def main_test(device, model_name, mask_name, mask_perc):
 
     print('[*] Testing  ... ')
     # initialize testing
-    total_nmse_test = 0
-    total_ssim_test = 0
-    total_psnr_test = 0
+    total_nmse_test = []
+    total_ssim_test = []
+    total_psnr_test = []
     num_test_temp = 0
 
     X_good_test_sample = []
     X_bad_test_sample = []
     X_generated_test_sample = []
-    X_diff_x10_test_sample = []
+    X_diff_gen_0_1_x_test_sample = []
+    X_diff_bad_0_1_x_test_sample = []
 
     with torch.no_grad():
         # testing
         for step, X_good in enumerate(dataloader_test):
 
-            print("step={:3}".format(step))
+            # print("step={:3}".format(step))
+
             # pre-processing for unet
             X_good = preprocessing(X_good)
 
@@ -145,18 +161,19 @@ def main_test(device, model_name, mask_name, mask_perc):
             X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
 
             # X_diff_x10
-            X_diff_0_1_x10 = torch.mul(torch.abs(torch.sub(X_good_0_1, X_generated_0_1)), 10)
+            X_diff_gen_0_1_x = torch.mul(torch.abs(torch.sub(X_good_0_1, X_generated_0_1)), diff_rate)
+            X_diff_bad_0_1_x = torch.mul(torch.abs(torch.sub(X_good_0_1, X_bad_0_1)), diff_rate)
 
             # eval for validation
             nmse_a = mse(X_generated_0_1, X_good_0_1)
-            nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+            nmse_b = mse(X_good_0_1, torch.zeros_like(X_good_0_1))
             nmse_res = torch.div(nmse_a, nmse_b).numpy()
             ssim_res = ssim(X_generated_0_1, X_good_0_1)
             psnr_res = psnr(X_generated_0_1, X_good_0_1)
 
-            total_nmse_test = total_nmse_test + np.sum(nmse_res)
-            total_ssim_test = total_ssim_test + np.sum(ssim_res)
-            total_psnr_test = total_psnr_test + np.sum(psnr_res)
+            total_nmse_test.append(nmse_res)
+            total_ssim_test.append(np.mean(ssim_res))
+            total_psnr_test.append(np.mean(psnr_res))
 
             num_test_temp = num_test_temp + batch_size
 
@@ -164,52 +181,52 @@ def main_test(device, model_name, mask_name, mask_perc):
             X_good_test_sample.append(X_good_0_1[0, :, :, :])
             X_bad_test_sample.append(X_bad_0_1[0, :, :, :])
             X_generated_test_sample.append(X_generated_0_1[0, :, :, :])
-            X_diff_x10_test_sample.append(X_diff_0_1_x10[0, :, :, :])
+            X_diff_gen_0_1_x_test_sample.append(X_diff_gen_0_1_x[0, :, :, :])
+            X_diff_bad_0_1_x_test_sample.append(X_diff_bad_0_1_x[0, :, :, :])
 
-        total_nmse_test = total_nmse_test / num_test_temp
-        total_ssim_test = total_ssim_test / num_test_temp
-        total_psnr_test = total_psnr_test / num_test_temp
+        ave_nmse_test = np.mean(total_nmse_test)
+        ave_ssim_test = np.mean(total_ssim_test)
+        ave_psnr_test = np.mean(total_psnr_test)
+
+        std_nmse_test = np.std(total_nmse_test, ddof=1)
+        std_ssim_test = np.std(total_ssim_test, ddof=1)
+        std_psnr_test = np.std(total_psnr_test, ddof=1)
 
         # record testing eval
-        log = "NMSE testing average: {:8}\nSSIM testing average: {:8}\nPSNR testing average: {:8}\n\n".format(
-            total_nmse_test, total_ssim_test, total_psnr_test)
+        log = "NMSE testing average: {:8}\nSSIM testing average: {:8}\nPSNR testing average: {:8}\n".format(
+            ave_nmse_test, ave_ssim_test, ave_psnr_test)
         print(log)
-        log_test.debug(log)
+        log_test.info(log)
 
-        # result
-        selected_index = np.random.randint(len(X_good_test_sample), size=25)
-        X_good_test_sample = torch.stack([X_good_test_sample[i] for i in selected_index])
-        X_bad_test_sample = torch.stack([X_bad_test_sample[i] for i in selected_index])
-        X_generated_test_sample = torch.stack([X_generated_test_sample[i] for i in selected_index])
-        X_diff_x10_test_sample = torch.stack([X_diff_x10_test_sample[i] for i in selected_index])
+        log = "NMSE testing std: {:8}\nSSIM testing std: {:8}\nPSNR testing std: {:8}\n".format(
+            std_nmse_test, std_ssim_test, std_psnr_test)
+        print(log)
+        log_test.info(log)
 
         # save image
         for i in range(len(X_good_test_sample)):
             torchvision.utils.save_image(X_good_test_sample[i],
-                                         os.path.join(save_dir,
+                                         os.path.join(save_dir, 'GroundTruth',
                                                       'GroundTruth_{}.png'.format(i)))
             torchvision.utils.save_image(X_bad_test_sample[i],
-                                         os.path.join(save_dir,
+                                         os.path.join(save_dir, 'Bad',
                                                       'Bad_{}.png'.format(i)))
             torchvision.utils.save_image(X_generated_test_sample[i],
-                                         os.path.join(save_dir,
+                                         os.path.join(save_dir, 'Generated',
                                                       'Generated_{}.png'.format(i)))
-            torchvision.utils.save_image(X_diff_x10_test_sample[i],
-                                         os.path.join(save_dir,
-                                                      'Diff_{}.png'.format(i)))
+            torchvision.utils.save_image(X_diff_gen_0_1_x_test_sample[i],
+                                         os.path.join(save_dir, 'Diff',
+                                                      'Diff_gen_{}.png'.format(i)))
+            torchvision.utils.save_image(X_diff_bad_0_1_x_test_sample[i],
+                                         os.path.join(save_dir, 'Diff',
+                                                      'Diff_bad_{}.png'.format(i)))
 
-        torchvision.utils.save_image(vutils.make_grid(X_good_test_sample, padding=2, nrow=5),
-                                     os.path.join(save_dir,
-                                                  'GroundTruth.png'))
-        torchvision.utils.save_image(vutils.make_grid(X_bad_test_sample, padding=2, nrow=5),
-                                     os.path.join(save_dir,
-                                                  'Bad.png'))
-        torchvision.utils.save_image(vutils.make_grid(X_generated_test_sample, padding=2, nrow=5),
-                                     os.path.join(save_dir,
-                                                  'Generated.png'))
-        torchvision.utils.save_image(vutils.make_grid(X_diff_x10_test_sample, padding=2, nrow=5),
-                                     os.path.join(save_dir,
-                                                  'Diff.png'))
+        # FID
+        log = os.popen("python -m pytorch_fid {} {} ".format(
+            os.path.join('.', save_dir, 'Generated'),
+            os.path.join('.', save_dir, 'GroundTruth'))).read()
+        print(log)
+        log_test.info(log)
 
 
 if __name__ == "__main__":
