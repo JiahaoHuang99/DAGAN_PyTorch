@@ -1,5 +1,3 @@
-from pickle import load
-
 import torchvision
 from scipy.io import loadmat
 from skimage.io import imread

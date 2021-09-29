@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="mist@quinv.mistgpu.xyz:11001 password">
+  <component name="PublishConfigData" serverName="jh@172.26.136.118:22 password">
     <serverData>
       <paths name="Mist_004">
         <serverdata>
@@ -12,14 +12,11 @@
           </excludedPaths>
         </serverdata>
       </paths>
-      <paths name="mist@quinv.mistgpu.xyz:11001 password">
+      <paths name="jh@172.26.136.118:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/mist" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/jh/DAGAN_PyTorch" local="$PROJECT_DIR$" />
           </mappings>
-          <excludedPaths>
-            <excludedPath local="true" path="$PROJECT_DIR$/data/MICCAI13_SegChallenge" />
-          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

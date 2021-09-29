@@ -1,5 +1,3 @@
-from pickle import load
-
 import torchvision
 from scipy.io import loadmat
 from skimage.io import imread
@@ -9,9 +7,19 @@ from model import *
 from utils import *
 
 
-def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_date, weight_unet):
+def main_test(device, model_name, mask_name, mask_perc, ):
+
+
 
     print('[*] Run Basic Configs ... ')
+    # configs
+    input_image_path = config.TEST.testing_single_image_path
+    diff_rate = config.TEST.diff_rate
+    train_date = config.TEST.train_date
+    weight_unet = config.TEST.weight_unet
+
+
+
     # setup checkpoint dir
     checkpoint_dir = os.path.join("checkpoint_{}_{}_{}"
                                   .format(model_name, mask_name, mask_perc),
@@ -106,7 +114,8 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
         X_generated_0_1 = torch.div(torch.add(X_generated, torch.ones_like(X_generated)), 2)
 
         # X_diff_x10
-        X_diff_0_1_x10 = torch.mul(torch.abs(torch.sub(X_good_0_1, X_generated_0_1)), 10)
+        X_diff_gen_0_1_x = torch.mul(torch.abs(torch.sub(X_good_0_1, X_generated_0_1)), diff_rate)
+        X_diff_bad_0_1_x = torch.mul(torch.abs(torch.sub(X_good_0_1, X_bad_0_1)), diff_rate)
 
         # save image
         torchvision.utils.save_image(X_good_0_1,
@@ -118,9 +127,12 @@ def main_test(device, model_name, mask_name, mask_perc, input_image_path, train_
         torchvision.utils.save_image(X_generated_0_1,
                                      os.path.join(save_dir,
                                                   'Generated_sample.png'))
-        torchvision.utils.save_image(X_diff_0_1_x10,
-                                     os.path.join(save_dir,
-                                                  'Diff_sample.png'))
+        torchvision.utils.save_image(X_diff_gen_0_1_x,
+                                     os.path.join(save_dir, 'Diff',
+                                                  'Diff_gen.png'))
+        torchvision.utils.save_image(X_diff_bad_0_1_x,
+                                     os.path.join(save_dir, 'Diff',
+                                                  'Diff_bad.png'))
     print('finish!')
 
 if __name__ == "__main__":
@@ -131,14 +143,12 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='unet', help='unet, unet_refine')
     parser.add_argument('--mask', type=str, default='gaussian2d', help='gaussian1d, gaussian2d, poisson2d')
     parser.add_argument('--maskperc', type=int, default='30', help='10,20,30,40,50')
-
-    parser.add_argument('--input_image', type=str, default=os.path.join('sample','sample1.png'))
-    parser.add_argument('--train_date', type=str, default='2020_11_17_22_19_14')
-    parser.add_argument('--weight_unet', type=str,
-                        default='best_checkpoint_generator_unet_gaussian2d_30_epoch_30_nmse_0.000142498295917324.pt')
+    parser.add_argument('--gpu', type=str, default='0', help='0, 1, 2, 3')
 
     args = parser.parse_args()
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    main_test(device, args.model, args.mask, args.maskperc, args.input_image, args.train_date, args.weight_unet)
+    main_test(device, args.model, args.mask, args.maskperc)

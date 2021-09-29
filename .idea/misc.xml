@@ -3,5 +3,5 @@
   <component name="JavaScriptSettings">
     <option name="languageLevel" value="ES6" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (ic_gan_py36)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.6.13 (sftp://jh@172.26.136.118:22/home/jh/miniconda3/envs/DAGAN/bin/python3.6)" project-jdk-type="Python SDK" />
 </project>

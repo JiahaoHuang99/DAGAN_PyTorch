@@ -27,18 +27,14 @@ If you have any questions about this code, please feel free to contact Jiahao Hu
 # Prerequisites
 
 The original code is in python 3.6 under the following dependencies:
-1. torch (v1.7.0+cu101)
-2. torchvision (v0.8.0)
-3. tensorlayer (v1.7.2)
-4. easydict (v1.9)
-5. nibabel (v2.1.0)
-6. scikit-image (v0.17.2)
-7. tensorboard (v2.2.2)
-8. tensorboardX (v2.1)
-9. crc32c (v2.2)
-10. soundfile (v0.10.3.post1) 
-11. opencv-python (v4.4.0.46)
-
+1. torch (1.7.0+cu101)(1.9.0+cu111)
+2. torchvision (0.8.0+cu101)(0.10.0+cu111)
+3. tensorlayer (1.7.2)
+4. easydict (1.9)
+5. scikit-image (0.17.2)
+6. tensorboard (2.2.2)
+7. tensorboardX (2.1)
+8. opencv-python (v4.4.0.46)
 
 The Code tested in Windows10 with Nvidia GPU + CUDA(10.1) CuDNN (v7.6.0.64)
 

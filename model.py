@@ -103,124 +103,119 @@ class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
 
-        # set parameter
-        self.gf_dim = 64
-        self.kernel_size = 4
-        self.padding = 1
-
         # network
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=self.gf_dim, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
+            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2,
+                      padding=1),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim, out_channels=self.gf_dim * 2, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 2),
+            nn.Conv2d(in_channels=64, out_channels=64 * 2, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 2),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv3 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 2, out_channels=self.gf_dim * 4, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 4),
+            nn.Conv2d(in_channels=64 * 2, out_channels=64 * 4, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 4),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv4 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 4, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 8),
+            nn.Conv2d(in_channels=64 * 4, out_channels=64 * 8, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 8),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv5 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 8),
+            nn.Conv2d(in_channels=64 * 8, out_channels=64 * 8, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 8),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv6 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 8),
+            nn.Conv2d(in_channels=64 * 8, out_channels=64 * 8, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 8),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv7 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 8),
+            nn.Conv2d(in_channels=64 * 8, out_channels=64 * 8, kernel_size=4, stride=2,
+                      padding=1),
+            nn.BatchNorm2d(num_features=64 * 8),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
         self.conv8 = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size, stride=2,
-                      padding=self.padding),
+            nn.Conv2d(in_channels=64 * 8, out_channels=64 * 8, kernel_size=4, stride=2,
+                      padding=1),
             nn.LeakyReLU(negative_slope=0.2)  # 源代码又LReLu 论文框架没有
         )
 
         self.deconv7 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 8, kernel_size=self.kernel_size,
-                               stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 8),
+            nn.ConvTranspose2d(in_channels=64 * 8, out_channels=64 * 8, kernel_size=4,
+                               stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 8),
             nn.ReLU()
         )
 
         self.deconv6 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 16, out_channels=self.gf_dim * 16,
-                               kernel_size=self.kernel_size, stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 16),
+            nn.ConvTranspose2d(in_channels=64 * 16, out_channels=64 * 16,
+                               kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 16),
             nn.ReLU()
         )
 
         self.deconv5 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 24, out_channels=self.gf_dim * 16,
-                               kernel_size=self.kernel_size, stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 16),
+            nn.ConvTranspose2d(in_channels=64 * 24, out_channels=64 * 16,
+                               kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 16),
             nn.ReLU()
         )
 
         self.deconv4 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 24, out_channels=self.gf_dim * 16,
-                               kernel_size=self.kernel_size, stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 16),
+            nn.ConvTranspose2d(in_channels=64 * 24, out_channels=64 * 16,
+                               kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 16),
             nn.ReLU()
         )
 
         self.deconv3 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 24, out_channels=self.gf_dim * 4, kernel_size=self.kernel_size,
-                               stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 4),
+            nn.ConvTranspose2d(in_channels=64 * 24, out_channels=64 * 4, kernel_size=4,
+                               stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 4),
             nn.ReLU()
         )
 
         self.deconv2 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 8, out_channels=self.gf_dim * 2, kernel_size=self.kernel_size,
-                               stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim * 2),
+            nn.ConvTranspose2d(in_channels=64 * 8, out_channels=64 * 2, kernel_size=4,
+                               stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64 * 2),
             nn.ReLU()
         )
 
         self.deconv1 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 4, out_channels=self.gf_dim, kernel_size=self.kernel_size,
-                               stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim),
+            nn.ConvTranspose2d(in_channels=64 * 4, out_channels=64, kernel_size=4,
+                               stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64),
             nn.ReLU()
         )
 
         self.deconv0 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.gf_dim * 2, out_channels=self.gf_dim, kernel_size=self.kernel_size,
-                               stride=2, padding=self.padding),
-            nn.BatchNorm2d(num_features=self.gf_dim),
+            nn.ConvTranspose2d(in_channels=64 * 2, out_channels=64, kernel_size=4,
+                               stride=2, padding=1),
+            nn.BatchNorm2d(num_features=64),
             nn.ReLU()
         )
 
         self.out = nn.Sequential(
-            nn.Conv2d(in_channels=self.gf_dim, out_channels=1, kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1, stride=1, padding=0),
             nn.Tanh(),
         )
 

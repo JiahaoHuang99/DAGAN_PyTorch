@@ -494,8 +494,11 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='unet', help='unet, unet_refine')
     parser.add_argument('--mask', type=str, default='gaussian2d', help='gaussian1d, gaussian2d, poisson2d')
     parser.add_argument('--maskperc', type=int, default='30', help='10,20,30,40,50')
+    parser.add_argument('--gpu', type=str, default='0', help='0, 1, 2, 3')
 
     args = parser.parse_args()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
