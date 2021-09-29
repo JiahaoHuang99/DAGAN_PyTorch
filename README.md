@@ -48,17 +48,13 @@ The Code tested in Windows10 with Nvidia GPU + CUDA(10.1) CuDNN (v7.6.0.64)
     validation.pickle
     into data/MICCAI13_SegChallenge/
     
-2. Download pretrained VGG16 model
-
-    1) run python setup_vgg.py
-    
-3. Train model
-    1) run 'CUDA_VISIBLE_DEVICES=0 python train.py --model MODEL --mask MASK --maskperc MASKPERC' where you should specify MODEL, MASK, MASKPERC respectively:
-    - MODEL: choose from 'unet' or 'unet_refine'
-    - MASK: choose from 'gaussian1d', 'gaussian2d', 'poisson2d'
-    - MASKPERC: choose from '10', '20', '30', '40', '50' (percentage of mask)
+2. Train model 
+   1. run 'CUDA_VISIBLE_DEVICES=0 python train.py --model MODEL --mask MASK --maskperc MASKPERC' where you should specify MODEL, MASK, MASKPERC respectively:
+       - MODEL: choose from 'unet' or 'unet_refine'
+       - MASK: choose from 'gaussian1d', 'gaussian2d', 'poisson2d'
+       - MASKPERC: choose from '10', '20', '30', '40', '50' (percentage of mask)
  
-4. Test trained model
+3. Test trained model
     
     1) run 'CUDA_VISIBLE_DEVICES=0 python test.py --model MODEL --mask MASK --maskperc MASKPERC' where you should specify MODEL, MASK, MASKPERC respectively (as above).
 
