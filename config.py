@@ -11,7 +11,7 @@ config.VAL = edict()
 # train & val
 config.TRAIN.image_size = 256
 config.TRAIN.batch_size = 12
-config.TRAIN.is_early_stopping = False
+config.TRAIN.is_early_stopping = True
 config.TRAIN.early_stopping_num = 8
 config.TRAIN.is_saving_model = True
 config.TRAIN.save_every_epoch = 2
