@@ -48,7 +48,9 @@ def main_train(device, model_name, mask_name, mask_perc):
 
     # configs
     batch_size = config.TRAIN.batch_size
+    is_early_stopping = config.TRAIN.is_early_stopping
     early_stopping_num = config.TRAIN.early_stopping_num
+    is_saving_model = config.TRAIN.is_saving_model
     save_epoch_every = config.TRAIN.save_every_epoch
     save_img_every_val_step = config.TRAIN.save_img_every_val_step
     g_alpha = config.TRAIN.g_alpha
@@ -149,10 +151,10 @@ def main_train(device, model_name, mask_name, mask_perc):
 
     # optimizer
     g_optim = optim.Adam(generator.parameters(), lr=lr, betas=(beta1, 0.999))
-    optim.lr_scheduler.StepLR(g_optim, lr_decay_every, gamma=lr_decay, last_epoch=-1)
+    g_lr_scheduler = optim.lr_scheduler.StepLR(g_optim, lr_decay_every * len(dataloader), gamma=lr_decay, last_epoch=-1)
 
     d_optim = optim.Adam(discriminator.parameters(), lr=lr, betas=(beta1, 0.999))
-    optim.lr_scheduler.StepLR(d_optim, lr_decay_every, gamma=lr_decay, last_epoch=-1)
+    d_lr_scheduler = optim.lr_scheduler.StepLR(d_optim, lr_decay_every * len(dataloader), gamma=lr_decay, last_epoch=-1)
 
     print('[*] Training  ... ')
     # initialize global step
@@ -171,6 +173,13 @@ def main_train(device, model_name, mask_name, mask_perc):
 
             # starting time for step
             step_time = time()
+
+            # update step
+            GLOBAL_STEP = GLOBAL_STEP + 1
+
+            # get learning rate
+            lr_g = g_lr_scheduler.get_last_lr()[0]
+            lr_d = d_lr_scheduler.get_last_lr()[0]
 
             # pre-processing for unet
             X_good = preprocessing(X_good)
@@ -218,7 +227,7 @@ def main_train(device, model_name, mask_name, mask_perc):
 
             # generator loss (pixel-wise)
             g_nmse_a = mse(X_generated, X_good)
-            g_nmse_b = mse(X_generated, torch.zeros_like(X_generated).to(device))
+            g_nmse_b = mse(X_good, torch.zeros_like(X_good).to(device))
             g_nmse = torch.div(g_nmse_a, g_nmse_b)
 
             # generator loss (frequency)
@@ -241,7 +250,14 @@ def main_train(device, model_name, mask_name, mask_perc):
             d_optim.step()
             g_optim.step()
 
+            # update learning rate
+            d_lr_scheduler.step()
+            g_lr_scheduler.step()
+
             with torch.no_grad():
+                # record the learning rate
+                logger_tensorboard.add_scalar('Learning Rate', lr_g,
+                                              global_step=GLOBAL_STEP)
                 # record train loss
                 logger_tensorboard.add_scalar('TRAIN Generator LOSS/G_LOSS', g_loss.item(),
                                               global_step=GLOBAL_STEP)
@@ -260,8 +276,8 @@ def main_train(device, model_name, mask_name, mask_perc):
                 logger_tensorboard.add_scalar('TRAIN Discriminator LOSS/d_loss_fake', d_loss_fake.item(),
                                               global_step=GLOBAL_STEP)
 
-                log = "Epoch[{:3}/{:3}] step={:3} d_loss={:5} g_loss={:5} g_adversarial={:5} g_perceptual_loss={:5} g_mse={:5} g_freq={:5} took {:3}s".format(
-                    epoch + 1, n_epoch, step,
+                log = "Epoch[{:3}/{:3}] lr={:8} step={:3} d_loss={:5} g_loss={:5} g_adversarial={:5} g_perceptual_loss={:5} g_mse={:5} g_freq={:5} took {:3}s".format(
+                    epoch, n_epoch, round(float(lr_g), 8), step,
                     round(float(d_loss), 3),
                     round(float(g_loss), 3),
                     round(float(g_adversarial), 3),
@@ -284,7 +300,7 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # eval for training
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
-                nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+                nmse_b = mse(X_good_0_1, torch.zeros_like(X_good_0_1))
                 nmse_res = torch.div(nmse_a, nmse_b).numpy()
                 ssim_res = ssim(X_generated_0_1, X_good_0_1)
                 psnr_res = psnr(X_generated_0_1, X_good_0_1)
@@ -294,7 +310,6 @@ def main_train(device, model_name, mask_name, mask_perc):
                 total_psnr_training = total_psnr_training + np.sum(psnr_res)
 
                 num_training_temp = num_training_temp + batch_size
-                GLOBAL_STEP = GLOBAL_STEP + 1
 
         total_nmse_training = total_nmse_training / num_training_temp
         total_ssim_training = total_ssim_training / num_training_temp
@@ -306,7 +321,7 @@ def main_train(device, model_name, mask_name, mask_perc):
         logger_tensorboard.add_scalar('Training/PSNR', total_psnr_training, global_step=epoch)
 
         log = "Epoch: {}  NMSE training: {:8}, SSIM training: {:8}, PSNR training: {:8}".format(
-            epoch + 1, total_nmse_training, total_ssim_training, total_psnr_training)
+            epoch, total_nmse_training, total_ssim_training, total_psnr_training)
         # print(log)
         log_all.debug(log)
         log_eval.info(log)
@@ -341,9 +356,9 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # generator
                 if model_name == 'unet':
-                    X_generated = generator.eval()(X_bad, is_refine=False)
+                    X_generated = generator(X_bad, is_refine=False)
                 elif model_name == 'unet_refine':
-                    X_generated = generator.eval()(X_bad, is_refine=True)
+                    X_generated = generator(X_bad, is_refine=True)
                 else:
                     raise Exception("unknown model")
 
@@ -371,7 +386,7 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # generator loss (pixel-wise)
                 g_nmse_a = mse(X_generated, X_good)
-                g_nmse_b = mse(X_generated, torch.zeros_like(X_generated).to(device))
+                g_nmse_b = mse(X_good, torch.zeros_like(X_good).to(device))
                 g_nmse = torch.div(g_nmse_a, g_nmse_b)
 
                 # generator loss (frequency)
@@ -410,7 +425,7 @@ def main_train(device, model_name, mask_name, mask_perc):
 
                 # eval for validation
                 nmse_a = mse(X_generated_0_1, X_good_0_1)
-                nmse_b = mse(X_generated_0_1, torch.zeros_like(X_generated_0_1))
+                nmse_b = mse(X_good_0_1, torch.zeros_like(X_good_0_1))
                 nmse_res = torch.div(nmse_a, nmse_b).numpy()
                 ssim_res = ssim(X_generated_0_1, X_good_0_1)
                 psnr_res = psnr(X_generated_0_1, X_good_0_1)
@@ -437,23 +452,23 @@ def main_train(device, model_name, mask_name, mask_perc):
             logger_tensorboard.add_scalar('Validation/PSNR', total_psnr_val, global_step=epoch)
 
             log = "Epoch: {}  NMSE val: {:8}, SSIM val: {:8}, PSNR val: {:8}".format(
-                epoch + 1, total_nmse_val, total_ssim_val, total_psnr_val)
+                epoch, total_nmse_val, total_ssim_val, total_psnr_val)
             # print(log)
             log_all.debug(log)
             log_eval.info(log)
 
             # saving checkpoint
-            if (epoch + 1) % save_epoch_every == 0:
+            if is_saving_model and ((epoch) % save_epoch_every == 0):
                 torch.save(generator.state_dict(),
                            os.path.join(checkpoint_dir,
                                         "checkpoint_generator_{}_{}_{}_epoch_{}_nmse_{}.pt"
-                                        .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
-                torch.save(discriminator.state_dict(),
-                           os.path.join(checkpoint_dir,
-                                        "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
-                                        .format(model_name, mask_name, mask_perc, (epoch + 1), total_nmse_val)))
+                                        .format(model_name, mask_name, mask_perc, (epoch), total_nmse_val)))
+                # torch.save(discriminator.state_dict(),
+                #            os.path.join(checkpoint_dir,
+                #                         "checkpoint_discriminator_{}_{}_{}_epoch_{}_nmse_{}.pt"
+                #                         .format(model_name, mask_name, mask_perc, (epoch), total_nmse_val)))
 
-            # save image
+            # saving image
             for i in range(len(X_good_val_sample)):
                 torchvision.utils.save_image(X_good_val_sample[i],
                                              os.path.join(save_dir,
@@ -464,12 +479,12 @@ def main_train(device, model_name, mask_name, mask_perc):
                 torchvision.utils.save_image(X_generated_val_sample[i],
                                              os.path.join(save_dir,
                                                           'Epoch_{}_Generated_{}.png'.format(epoch, i)))
-
             # early stopping
-            early_stopping(total_nmse_val, generator, discriminator, epoch)
-            if early_stopping.early_stop:
-                print("Early stopping!")
-                break
+            if is_early_stopping:
+                early_stopping(total_nmse_val, generator, discriminator, epoch)
+                if early_stopping.early_stop:
+                    print("Early stopping!")
+                    break
 
 
 if __name__ == "__main__":
