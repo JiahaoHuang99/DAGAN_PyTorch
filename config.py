@@ -11,7 +11,9 @@ config.VAL = edict()
 # train & val
 config.TRAIN.image_size = 256
 config.TRAIN.batch_size = 6
-config.TRAIN.early_stopping_num = 30
+config.TRAIN.is_early_stopping = False
+config.TRAIN.early_stopping_num = 8
+config.TRAIN.is_saving_model = True
 config.TRAIN.save_every_epoch = 2
 config.TRAIN.save_img_every_val_step = 50
 config.TRAIN.lr = 0.0001  # init learning rate
@@ -20,7 +22,7 @@ config.TRAIN.lr_decay_every = 5  # decay every epoch
 config.TRAIN.beta1 = 0.5  # beta1 in Adam optimiser
 config.TRAIN.n_epoch = 9999  # total epoch
 
-config.TRAIN.is_mini_dataset = True  # for debug
+config.TRAIN.is_mini_dataset = False  # for debug
 config.TRAIN.size_mini_trainset = 300
 config.TRAIN.size_mini_valset = 60
 
@@ -38,10 +40,11 @@ config.TRAIN.mask_Poisson2D_path = os.path.join('mask', 'Poisson2D')
 
 # test
 config.TEST.image_size = 256
-config.TEST.batch_size = 7
+config.TEST.batch_size = 6
+config.TEST.diff_rate = 10
 
-config.TEST.is_mini_dataset = True  # for debug
-config.TEST.size_mini_dataset = 300
+config.TEST.is_mini_dataset = False  # for debug
+config.TEST.size_mini_dataset = 50
 
 config.TEST.train_date = '2020_11_17_22_19_14'
 config.TEST.weight_unet = 'best_checkpoint_generator_unet_gaussian2d_30_epoch_30_nmse_0.000142498295917324.pt'
