@@ -5,7 +5,7 @@
       <paths name="jh@172.26.136.118:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/jh/DAGAN_PyTorch" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/jh/DAGAN_PyTorch" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

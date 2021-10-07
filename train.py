@@ -6,6 +6,7 @@ import torchvision
 from scipy.io import loadmat
 from tensorboardX import SummaryWriter
 from torch.utils import data
+import cv2
 
 from config import config, log_config
 from model import *
@@ -106,6 +107,18 @@ def main_train(device, model_name, mask_name, mask_perc):
             loadmat(
                 os.path.join(config.TRAIN.mask_Gaussian1D_path, "PoissonDistributionMask_{}.mat".format(mask_perc)))[
                 'population_matrix']
+    elif mask_name == "spiral":
+        imask = cv2.imread(os.path.join('mask', mask_name, '{}_{}.tif'.format(mask_name, mask_perc)), 0) / 255
+        mask = scipy.fftpack.fftshift(imask)
+    elif mask_name == "cartes":
+        imask = cv2.imread(os.path.join('mask', mask_name, '{}_{}.tif'.format(mask_name, mask_perc)), 0) / 255
+        mask = scipy.fftpack.fftshift(imask)
+    elif mask_name == "gauss":
+        imask = cv2.imread(os.path.join('mask', mask_name, '{}_{}.tif'.format(mask_name, mask_perc)), 0) / 255
+        mask = scipy.fftpack.fftshift(imask)
+    elif mask_name == "radial":
+        imask = cv2.imread(os.path.join('mask', mask_name, '{}_{}.tif'.format(mask_name, mask_perc)), 0) / 255
+        mask = scipy.fftpack.fftshift(imask)
     else:
         raise ValueError("no such mask exists: {}".format(mask_name))
 
@@ -490,9 +503,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--model', type=str, default='unet', help='unet, unet_refine')
-    parser.add_argument('--mask', type=str, default='gaussian2d', help='gaussian1d, gaussian2d, poisson2d')
+    # new mask cartes, gauss, radial, spiral from 10%-90%
+    parser.add_argument('--model', type=str, default='unet_refine', help='unet, unet_refine')
+    parser.add_argument('--mask', type=str, default='radial', help='gaussian1d, gaussian2d, poisson2d, cartes, gauss, radial, spiral')
     parser.add_argument('--maskperc', type=int, default='30', help='10,20,30,40,50')
     parser.add_argument('--gpu', type=str, default='0', help='0, 1, 2, 3')
 

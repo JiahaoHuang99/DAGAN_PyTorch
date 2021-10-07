@@ -219,8 +219,6 @@ class UNet(nn.Module):
             nn.Tanh(),
         )
 
-        self.refine = nn.Tanh()
-
     # forward propagation
     def forward(self, x, is_refine=False):
         input = x
@@ -243,7 +241,7 @@ class UNet(nn.Module):
         output = self.out(up0)
 
         if is_refine:
-            output = self.refine(output + input)
+            output = torch.clamp((output + input), min=-1, max=1)
 
         return output
 
