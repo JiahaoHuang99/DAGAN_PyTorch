@@ -43,11 +43,11 @@ config.TEST.image_size = 256
 config.TEST.batch_size = 12
 config.TEST.diff_rate = 10
 
-config.TEST.is_mini_dataset = False  # for debug
-config.TEST.size_mini_dataset = 50
+config.TEST.is_mini_dataset = True  # for debug
+config.TEST.size_mini_dataset = 2500
 
-config.TEST.train_date = '2020_11_17_22_19_14'
-config.TEST.weight_unet = 'best_checkpoint_generator_unet_gaussian2d_30_epoch_30_nmse_0.000142498295917324.pt'
+config.TEST.train_date = '2021_10_21_02_19_55'
+config.TEST.weight_unet = 'best_checkpoint_generator_unet_refine_gaussian2d_10_epoch_19_nmse_0.0005067337653321839.pt'
 config.TEST.testing_single_image_path = os.path.join('sample', 'sample1.png')
 config.TEST.VGG16_path = os.path.join('trained_model', 'VGG16', 'vgg16_weights.npz')
 config.TEST.testing_data_path = os.path.join('data', 'MICCAI13_SegChallenge', 'testing.pickle')
