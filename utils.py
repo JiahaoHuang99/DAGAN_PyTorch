@@ -91,18 +91,23 @@ class DataAugment:
         return x
 
 def to_bad_img(x, mask):
+    # x = ground truth
     y = x.copy()
     for i in range(x.shape[0]):
         xx = x[i, :, :, 0]
         xx = (xx + 1.) / 2.
+        # x (image/pixel space) --> FFT2D --> fft (k-space)
         fft = scipy.fftpack.fft2(xx)
         fft = scipy.fftpack.fftshift(fft)
+        # downsampling in k-space
         fft = fft * mask
+        #  fft (k-space) --> iFFT2D --> x (image/pixel space)
         fft = scipy.fftpack.ifftshift(fft)
         xx = scipy.fftpack.ifft2(fft)
         xx = np.abs(xx)
         xx = xx * 2 - 1
         y[i, :, :, :] = xx[:, :, np.newaxis]
+        # y undersampled image
     return y
 
 
